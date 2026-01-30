@@ -21,7 +21,7 @@ jobs:
       - name: Update debian/changelog from git
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          AUTHOR="Denis <you@example.com>"
+          AUTHOR="Denis <zver@altlinux.org>"
           DATE=$(date -R)
           # Формируем краткое описание изменений на основе последних коммитов
           CHANGES=$(git log --pretty=format:"  * %s" $(git describe --tags --abbrev=0 @^)..@)
