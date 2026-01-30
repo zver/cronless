@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  author: Denis Klimov
+  description: Install Cronless via GitHub release
+  license: MIT
+  min_ansible_version: 2.9

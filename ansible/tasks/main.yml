@@ -1,0 +1,44 @@
+---
+- name: Determine download URL
+  set_fact:
+    cronless_deb_url: >-
+      {% if cronless_version != "" %}
+        {{ cronless_github_repo }}/releases/download/v{{ cronless_version }}/cronless_{{ cronless_version }}_all.deb
+      {% else %}
+        {{ cronless_github_repo }}/releases/latest
+      {% endif %}
+
+- name: Get latest release info from GitHub (if version not specified)
+  when: cronless_version == ""
+  uri:
+    url: "{{ cronless_deb_url }}"
+    method: GET
+    return_content: yes
+    status_code: 200
+  register: github_latest
+
+- name: Extract latest deb URL
+  when: cronless_version == ""
+  set_fact:
+    cronless_deb_url: "{{ github_latest.content | regex_search('href=\"([^\"]+cronless_[0-9.]+_all.deb)\"', '\\1') }}"
+
+- name: Prepend GitHub domain if needed
+  when: cronless_version == ""
+  set_fact:
+    cronless_deb_url: >-
+      {% if cronless_deb_url.startswith('http') %}
+        {{ cronless_deb_url }}
+      {% else %}
+        https://github.com{{ cronless_deb_url }}
+      {% endif %}
+
+- name: Download Cronless deb
+  get_url:
+    url: "{{ cronless_deb_url }}"
+    dest: "{{ cronless_download_path }}"
+    mode: '0644'
+
+- name: Install Cronless package
+  apt:
+    deb: "{{ cronless_download_path }}"
+    state: present

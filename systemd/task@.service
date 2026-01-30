@@ -1,0 +1,8 @@
+[Unit]
+Description=Cronless task %i
+After=network.target
+
+[Service]
+EnvironmentFile=%h/.config/systemd/user/task.d/task-%i.conf
+Type=oneshot
+ExecStart=/usr/bin/cronless-run-task %i

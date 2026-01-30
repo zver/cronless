@@ -1,0 +1,69 @@
+#!/bin/bash
+# cronless-manage-tasks — добавление/удаление/список задач
+
+set -e
+
+CONF_DIR="$HOME/.config/systemd/user/task.d"
+LOG_STATUS="$HOME/task_logs/status"
+mkdir -p "$CONF_DIR" "$LOG_STATUS"
+
+ACTION="$1"
+
+case "$ACTION" in
+  add)
+    TASK_NAME="$2"
+    TASK_COMMAND="$3"
+    TASK_SCHEDULE="$4"
+    CONF_FILE="$CONF_DIR/task-${TASK_NAME}.conf"
+
+    cat > "$CONF_FILE" <<EOF
+[Unit]
+Environment=TASK_COMMAND=$TASK_COMMAND
+Environment=TASK_SCHEDULE=$TASK_SCHEDULE
+EOF
+
+    systemctl --user daemon-reload
+    systemctl --user enable --now "task@${TASK_NAME}.timer"
+    echo "✅ Task '$TASK_NAME' added with schedule: $TASK_SCHEDULE"
+    ;;
+
+  remove)
+    TASK_NAME="$2"
+    CONF_FILE="$CONF_DIR/task-${TASK_NAME}.conf"
+    systemctl --user disable --now "task@${TASK_NAME}.timer" || true
+    rm -f "$CONF_FILE"
+    systemctl --user daemon-reload
+    echo "🗑 Task '$TASK_NAME' removed"
+    ;;
+
+  list)
+    echo "📋 Configured tasks:"
+    for f in "$CONF_DIR"/task-*.conf; do
+        [ -f "$f" ] || continue
+        TASK=$(basename "$f" | sed 's/^task-\(.*\)\.conf$/\1/')
+        CMD=$(grep '^Environment=TASK_COMMAND=' "$f" | cut -d= -f2-)
+        SCH=$(grep '^Environment=TASK_SCHEDULE=' "$f" | cut -d= -f2-)
+        STATUS=$(systemctl --user is-active "task@${TASK}.timer" || echo "inactive")
+
+        STATUS_FILE="$LOG_STATUS/${TASK}_last_status.txt"
+        if [ -f "$STATUS_FILE" ]; then
+            LAST_RUN=$(grep "^Last run:" "$STATUS_FILE" | cut -d' ' -f3-)
+            LAST_RESULT=$(grep "^Last result:" "$STATUS_FILE" | cut -d' ' -f3-)
+            DURATION=$(grep "^Duration:" "$STATUS_FILE" | cut -d' ' -f2)
+            EXTRA="(last: $LAST_RUN, result: $LAST_RESULT, duration: $DURATION)"
+        else
+            EXTRA="(no runs yet)"
+        fi
+
+        echo " - $TASK: \"$CMD\" @ $SCH [$STATUS] $EXTRA"
+    done
+    ;;
+
+  *)
+    echo "Usage:"
+    echo "  $0 add <task_name> \"<command>\" \"<schedule>\""
+    echo "  $0 remove <task_name>"
+    echo "  $0 list"
+    exit 1
+    ;;
+esac

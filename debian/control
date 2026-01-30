@@ -1,0 +1,12 @@
+Source: cronless
+Section: utils
+Priority: optional
+Maintainer: Denis Klimov <zver@altlinux.org>
+Build-Depends: debhelper (>= 11)
+Standards-Version: 4.5.0
+
+Package: cronless
+Architecture: all
+Depends: ${misc:Depends}, systemd
+Description: Cronless — лёгкий менеджер задач на systemd timers
+ Упрощённая альтернатива cron для ноутбуков и десктопов.

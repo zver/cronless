@@ -1,0 +1,61 @@
+name: Build and Release Cronless
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y debhelper devscripts build-essential git
+
+      - name: Update debian/changelog from git
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          AUTHOR="Denis <you@example.com>"
+          DATE=$(date -R)
+          # Формируем краткое описание изменений на основе последних коммитов
+          CHANGES=$(git log --pretty=format:"  * %s" $(git describe --tags --abbrev=0 @^)..@)
+          # Создаём новый changelog
+          echo "cronless (${VERSION}) unstable; urgency=low" > debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo "$CHANGES" >> debian/changelog.new
+          echo "" >> debian/changelog.new
+          echo " -- $AUTHOR  $DATE" >> debian/changelog.new
+          # Перемещаем новый changelog в папку debian
+          mv debian/changelog.new debian/changelog
+
+      - name: Build deb package
+        run: dpkg-buildpackage -us -uc
+
+      - name: Upload deb as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cronless-deb
+          path: ../cronless_*_all.deb
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build-deb
+
+    steps:
+      - name: Download deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cronless-deb
+          path: ./dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./dist/cronless_*_all.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,7 @@
+---
+# URL репозитория GitHub
+cronless_github_repo: "https://github.com/zver/cronless"
+# Путь для загрузки deb-файла
+cronless_download_path: "/tmp/cronless.deb"
+# Версия для установки (оставьте пустым для последнего релиза)
+cronless_version: ""

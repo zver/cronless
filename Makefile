@@ -1,0 +1,20 @@
+PREFIX=/usr
+BINDIR=$(PREFIX)/bin
+SYSTEMD_USER_DIR=$(PREFIX)/lib/systemd/user
+
+install:
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 0755 scripts/cronless-run-task $(DESTDIR)$(BINDIR)/
+	install -m 0755 scripts/cronless-manage-tasks $(DESTDIR)$(BINDIR)/
+	install -m 0755 scripts/cronless-weekly-report $(DESTDIR)$(BINDIR)/
+
+	install -d $(DESTDIR)$(SYSTEMD_USER_DIR)
+	install -m 0644 systemd/task@.service $(DESTDIR)$(SYSTEMD_USER_DIR)/
+	install -m 0644 systemd/task@.timer $(DESTDIR)$(SYSTEMD_USER_DIR)/
+
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/cronless-run-task
+	rm -f $(DESTDIR)$(BINDIR)/cronless-manage-tasks
+	rm -f $(DESTDIR)$(BINDIR)/cronless-weekly-report
+	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.service
+	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.timer
