@@ -33,6 +33,7 @@ jobs:
           echo " -- $AUTHOR  $DATE" >> debian/changelog.new
           # Перемещаем новый changelog в папку debian
           mv debian/changelog.new debian/changelog
+          cat debian/changelog
 
       - name: Build deb package
         run: |
