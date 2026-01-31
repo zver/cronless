@@ -2,6 +2,9 @@ PREFIX=/usr
 BINDIR=$(PREFIX)/bin
 SYSTEMD_USER_DIR=$(PREFIX)/lib/systemd/user
 
+all:
+	@echo "Nothing to build"
+
 install:
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 0755 scripts/cronless-run-task $(DESTDIR)$(BINDIR)/
@@ -18,3 +21,5 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless-weekly-report
 	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.service
 	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.timer
+
+.PHONY: all install uninstall
