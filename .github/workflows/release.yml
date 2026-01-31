@@ -35,13 +35,15 @@ jobs:
           mv debian/changelog.new debian/changelog
 
       - name: Build deb package
-        run: dpkg-buildpackage -us -uc
+        run: |
+          dpkg-buildpackage -us -uc
+          cp ../cronless_*.deb .
 
       - name: Upload deb as artifact
         uses: actions/upload-artifact@v4
         with:
           name: cronless-deb
-          path: ../cronless_*_all.deb
+          path: cronless_*.deb
 
   release:
     runs-on: ubuntu-latest
