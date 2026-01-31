@@ -20,19 +20,42 @@ jobs:
 
       - name: Update debian/changelog from git
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          set -e
+
           AUTHOR="Denis <zver@altlinux.org>"
           DATE=$(date -R)
-          # Формируем краткое описание изменений на основе последних коммитов
-          CHANGES=$(git log --pretty=format:"  * %s" $(git describe --tags --abbrev=0 @^)..@)
-          # Создаём новый changelog
-          echo "cronless (${VERSION}) unstable; urgency=low" > debian/changelog.new
-          echo "" >> debian/changelog.new
-          echo "$CHANGES" >> debian/changelog.new
-          echo "" >> debian/changelog.new
-          echo " -- $AUTHOR  $DATE" >> debian/changelog.new
-          # Перемещаем новый changelog в папку debian
-          mv debian/changelog.new debian/changelog
+
+          # Определяем версию
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            RANGE="$(git describe --tags --abbrev=0 HEAD^)..HEAD"
+          else
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            if [[ -n "$LAST_TAG" ]]; then
+              VERSION="${LAST_TAG#v}-git$(date +%Y%m%d)"
+              RANGE="$LAST_TAG..HEAD"
+            else
+              VERSION="0.0.0+git$(date +%Y%m%d)"
+              RANGE=""
+            fi
+          fi
+
+          # Формируем список изменений
+          if [[ -n "$RANGE" ]]; then
+            CHANGES=$(git log --pretty=format:"  * %s" $RANGE)
+          else
+            CHANGES=$(git log --pretty=format:"  * %s")
+          fi
+
+          # Генерируем changelog
+          cat > debian/changelog <<EOF
+          cronless ($VERSION) unstable; urgency=low
+
+          $CHANGES
+
+          -- $AUTHOR  $DATE
+          EOF
+
           cat debian/changelog
 
       - name: Build deb package
