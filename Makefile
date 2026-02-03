@@ -13,7 +13,6 @@ install:
 
 	install -d $(DESTDIR)$(SYSTEMD_USER_DIR)
 	install -m 0644 systemd/task@.service $(DESTDIR)$(SYSTEMD_USER_DIR)/
-	install -m 0644 systemd/task@.timer $(DESTDIR)$(SYSTEMD_USER_DIR)/
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless-run-task
