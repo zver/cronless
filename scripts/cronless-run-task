@@ -1,42 +1,120 @@
 #!/bin/bash
-# cronless-run-task — универсальный скрипт для запуска задач
+# cronless-manage-tasks — add/remove/list Cronless tasks
 
-TASK_NAME="$1"
-if [ -z "$TASK_NAME" ]; then
-    echo "Usage: $0 <task_name>"
-    exit 1
-fi
+set -euo pipefail
 
-CONFIG_DIR="$HOME/.config/systemd/user/task.d"
-LOG_DIR="$HOME/task_logs/logs"
-STATUS_DIR="$HOME/task_logs/status"
-mkdir -p "$LOG_DIR" "$STATUS_DIR"
+UNIT_DIR="$HOME/.config/systemd/user/cronless"
+CONF_DIR="$HOME/.config/systemd/user/task.d"
 
-CONF_FILE="$CONFIG_DIR/task-${TASK_NAME}.conf"
-if [ ! -f "$CONF_FILE" ]; then
-    echo "Task $TASK_NAME not found!"
-    exit 1
-fi
+mkdir -p "$UNIT_DIR" "$CONF_DIR"
 
-CMD=$(grep '^Environment=TASK_COMMAND=' "$CONF_FILE" | cut -d= -f2-)
+ACTION="${1:-}"
 
-START=$(date +%s)
-OUTPUT_FILE="$LOG_DIR/${TASK_NAME}_$(date +%Y%m%d_%H%M%S).log"
+usage() {
+  echo "Usage:"
+  echo "  $0 add <task_name> \"<command>\" \"<OnCalendar>\""
+  echo "  $0 remove <task_name>"
+  echo "  $0 list"
+  exit 1
+}
 
-# Запуск команды и сохранение stdout+stderr
-$CMD >"$OUTPUT_FILE" 2>&1
-EXIT_CODE=$?
-END=$(date +%s)
-DURATION=$(( (END - START) / 60 ))  # duration in minutes
+case "$ACTION" in
+  add)
+    [ $# -eq 4 ] || usage
 
-# Сохранение последнего статуса
-STATUS_FILE="$STATUS_DIR/${TASK_NAME}_last_status.txt"
-echo "Last run: $(date +%Y-%m-%d_%H:%M:%S)" > "$STATUS_FILE"
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Last result: SUCCESS" >> "$STATUS_FILE"
-else
-    echo "Last result: FAIL" >> "$STATUS_FILE"
-fi
-echo "Duration: ${DURATION}m" >> "$STATUS_FILE"
+    TASK_NAME="$2"
+    TASK_COMMAND="$3"
+    TASK_SCHEDULE="$4"
 
-exit $EXIT_CODE
+    SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
+    TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
+    CONF_FILE="$CONF_DIR/task-${TASK_NAME}.conf"
+
+    if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$CONF_FILE" ]; then
+      echo "❌ Task '$TASK_NAME' already exists"
+      exit 1
+    fi
+
+    # ---------- task config ----------
+    cat > "$CONF_FILE" <<EOF
+[Task]
+Environment=TASK_COMMAND=$TASK_COMMAND
+EOF
+
+    # ---------- service ----------
+    cat > "$SERVICE_FILE" <<EOF
+[Unit]
+Description=Cronless task $TASK_NAME
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cronless-run-task $TASK_NAME
+EOF
+
+    # ---------- timer ----------
+    cat > "$TIMER_FILE" <<EOF
+[Unit]
+Description=Cronless timer $TASK_NAME
+
+[Timer]
+OnCalendar=$TASK_SCHEDULE
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl --user daemon-reload
+    systemctl --user enable --now "$(basename "$TIMER_FILE")"
+
+    echo "✅ Task '$TASK_NAME' added"
+    echo "   Command : $TASK_COMMAND"
+    echo "   Schedule: $TASK_SCHEDULE"
+    ;;
+
+  remove)
+    [ $# -eq 2 ] || usage
+
+    TASK_NAME="$2"
+
+    systemctl --user disable --now "$TASK_NAME.timer" 2>/dev/null || true
+
+    rm -f \
+      "$UNIT_DIR/${TASK_NAME}.service" \
+      "$UNIT_DIR/${TASK_NAME}.timer" \
+      "$CONF_DIR/task-${TASK_NAME}.conf"
+
+    systemctl --user daemon-reload
+
+    echo "🗑 Task '$TASK_NAME' removed"
+    ;;
+
+  list)
+    echo "📋 Configured tasks:"
+    shopt -s nullglob
+    for conf in "$CONF_DIR"/task-*.conf; do
+      TASK_NAME="$(basename "$conf" | sed 's/^task-\(.*\)\.conf$/\1/')"
+
+      CMD=$(grep '^Environment=TASK_COMMAND=' "$conf" | cut -d= -f2-)
+      TIMER="$UNIT_DIR/$TASK_NAME.timer"
+
+      if [ -f "$TIMER" ]; then
+        SCHEDULE=$(grep '^OnCalendar=' "$TIMER" | cut -d= -f2-)
+        STATUS=$(systemctl --user is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
+      else
+        SCHEDULE="—"
+        STATUS="missing timer"
+      fi
+
+      echo " - $TASK_NAME"
+      echo "     command : $CMD"
+      echo "     schedule: $SCHEDULE"
+      echo "     status  : $STATUS"
+    done
+    ;;
+
+  *)
+    usage
+    ;;
+esac

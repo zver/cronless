@@ -12,12 +12,10 @@ install:
 	install -m 0755 scripts/cronless-weekly-report $(DESTDIR)$(BINDIR)/
 
 	install -d $(DESTDIR)$(SYSTEMD_USER_DIR)
-	install -m 0644 systemd/task@.service $(DESTDIR)$(SYSTEMD_USER_DIR)/
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless-run-task
 	rm -f $(DESTDIR)$(BINDIR)/cronless-manage-tasks
 	rm -f $(DESTDIR)$(BINDIR)/cronless-weekly-report
-	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.service
 
 .PHONY: all install uninstall
