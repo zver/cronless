@@ -8,36 +8,22 @@ if [ -z "$TASK_NAME" ]; then
 fi
 
 CONFIG_DIR="$HOME/.config/systemd/user/task.d"
-LOG_DIR="$HOME/task_logs/logs"
-STATUS_DIR="$HOME/task_logs/status"
-mkdir -p "$LOG_DIR" "$STATUS_DIR"
 
 CONF_FILE="$CONFIG_DIR/cronless-${TASK_NAME}.conf"
 if [ ! -f "$CONF_FILE" ]; then
-    echo "Task $TASK_NAME not found!"
+    echo "Task $TASK_NAME not found!" >&2
     exit 1
 fi
 
 # CMD прочитан из конфига
 CMD=$(grep '^COMMAND=' "$CONF_FILE" | cut -d= -f2-)
-
-START=$(date +%s)
-OUTPUT_FILE="$LOG_DIR/${TASK_NAME}_$(date +%Y%m%d_%H%M%S).log"
+if [[ -z "$CMD" ]]; then
+    echo "Task command not found in $CONF_FILE!" >&2
+    exit 1
+fi
 
 # Запуск команды через bash -c, чтобы корректно работал >
-bash -c "$CMD" >"$OUTPUT_FILE" 2>&1
+bash -c "$CMD"
 EXIT_CODE=$?
-END=$(date +%s)
-DURATION=$(( (END - START) / 60 ))  # duration in minutes
-
-# Сохранение последнего статуса
-STATUS_FILE="$STATUS_DIR/${TASK_NAME}_last_status.txt"
-echo "Last run: $(date +%Y-%m-%d_%H:%M:%S)" > "$STATUS_FILE"
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Last result: SUCCESS" >> "$STATUS_FILE"
-else
-    echo "Last result: FAIL" >> "$STATUS_FILE"
-fi
-echo "Duration: ${DURATION}m" >> "$STATUS_FILE"
 
 exit $EXIT_CODE

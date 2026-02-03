@@ -1,40 +1,64 @@
 #!/bin/bash
-# cronless-weekly-report — генерация недельного отчёта
+# cronless-weekly-report — генерация недельного отчёта через journalctl с вычислением Duration
 
-STATUS_DIR="$HOME/task_logs/status"
-LOG_DIR="$HOME/task_logs/logs"
+# Получаем список активных задач
+TASKS=($(cronless-manage-tasks list | awk '/^ - / {print $2}'))
 
-for status_file in "$STATUS_DIR"/*_last_status.txt; do
-    [ -f "$status_file" ] || continue
-    TASK=$(basename "$status_file" | sed 's/_last_status.txt//')
+SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
-    LAST_RUN=$(grep "^Last run:" "$status_file" | cut -d' ' -f3-)
-    LAST_RESULT=$(grep "^Last result:" "$status_file" | cut -d' ' -f3)
-    DURATION=$(grep "^Duration:" "$status_file" | cut -d' ' -f2)
+for TASK in "${TASKS[@]}"; do
+    # Берём все логи за неделю с unix-временем
+    LOGS=$(journalctl --user -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
 
-    # Подсчёт запусков за неделю
-    RUNS=($(ls "$LOG_DIR/${TASK}"* 2>/dev/null))
-    TOTAL=${#RUNS[@]}
-    SUCCESS=$(grep -l "SUCCESS" "${RUNS[@]}" 2>/dev/null | wc -l)
+    [[ -z "$LOGS" ]] && continue
+
+    declare -a START_TIMES
+    declare -a END_TIMES
+    declare -a RESULTS
+
+    while IFS= read -r line; do
+        TIME=$(echo "$line" | awk '{print $1}')
+        if [[ "$line" =~ Starting ]]; then
+            START_TIMES+=("$TIME")
+        elif [[ "$line" =~ Finished ]]; then
+            END_TIMES+=("$TIME")
+            RESULTS+=("SUCCESS")
+        elif [[ "$line" =~ Failed ]]; then
+            END_TIMES+=("$TIME")
+            RESULTS+=("FAIL")
+        fi
+    done <<< "$LOGS"
+
+    TOTAL=${#RESULTS[@]}
+    SUCCESS=$(grep -o "SUCCESS" <<< "${RESULTS[*]}" | wc -l)
     FAIL=$((TOTAL - SUCCESS))
 
-    # Формируем символы последовательности последних 20 запусков
     CHARS=""
-    for run in "${RUNS[@]: -20}"; do
-        if grep -q "SUCCESS" "$run"; then
-            CHARS+="✔"
-        else
-            CHARS+="✖"
-        fi
+    for res in "${RESULTS[@]: -20}"; do
+        [[ "$res" == "SUCCESS" ]] && CHARS+="✔" || CHARS+="✖"
     done
 
-    MAX_DURATION=$(grep -h "Duration:" "${RUNS[@]}" 2>/dev/null | cut -d' ' -f2 | sort -nr | head -1)
+    LAST_RUN_UNIX=${END_TIMES[-1]}
+    LAST_RUN=$(date -d "@$LAST_RUN_UNIX" '+%Y-%m-%d %H:%M:%S')
+    LAST_RESULT=${RESULTS[-1]}
+
+    DURATIONS=()
+    for i in "${!START_TIMES[@]}"; do
+        start=${START_TIMES[i]}
+        end=${END_TIMES[i]:-$start}
+        duration=$(( (end - start) / 60 ))
+        DURATIONS+=("$duration")
+    done
+
+    MAX_DURATION=$(printf "%s\n" "${DURATIONS[@]}" | sort -nr | head -1)
 
     echo "Task: $TASK"
     echo "  Last run: $LAST_RUN"
     echo "  Last result: $LAST_RESULT"
     echo "  Total runs: $TOTAL ($CHARS)"
     echo "  Success: $SUCCESS, Fail: $FAIL"
-    echo "  Max duration: ${MAX_DURATION}m"
+    echo "  Max duration: ${MAX_DURATION:-"-"}m"
     echo ""
+
+    unset START_TIMES END_TIMES RESULTS DURATIONS
 done
