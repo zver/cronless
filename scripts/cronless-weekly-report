@@ -44,8 +44,9 @@ for TASK in "${TASKS[@]}"; do
 
     DURATIONS=()
     for i in "${!START_TIMES[@]}"; do
-        start=${START_TIMES[i]}
-        end=${END_TIMES[i]:-$start}
+        # Отбрасываем дробную часть, оставляем целое число секунд
+        start=${START_TIMES[i]%.*}
+        end=${END_TIMES[i]%.*}
         duration=$(( (end - start) / 60 ))
         DURATIONS+=("$duration")
     done
