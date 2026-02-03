@@ -2,4 +2,3 @@ usr/bin/cronless-run-task
 usr/bin/cronless-manage-tasks
 usr/bin/cronless-weekly-report
 usr/lib/systemd/user/task@.service
-usr/lib/systemd/user/task@.timer

@@ -20,6 +20,5 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless-manage-tasks
 	rm -f $(DESTDIR)$(BINDIR)/cronless-weekly-report
 	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.service
-	rm -f $(DESTDIR)$(SYSTEMD_USER_DIR)/task@.timer
 
 .PHONY: all install uninstall
