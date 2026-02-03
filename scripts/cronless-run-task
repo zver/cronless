@@ -19,7 +19,7 @@ if [ ! -f "$CONF_FILE" ]; then
 fi
 
 # CMD прочитан из конфига
-CMD=$(grep '^Environment=TASK_COMMAND=' "$CONF_FILE" | cut -d= -f2-)
+CMD=$(grep '^COMMAND=' "$CONF_FILE" | cut -d= -f2-)
 
 START=$(date +%s)
 OUTPUT_FILE="$LOG_DIR/${TASK_NAME}_$(date +%Y%m%d_%H%M%S).log"

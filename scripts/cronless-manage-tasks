@@ -38,7 +38,7 @@ case "$ACTION" in
     # ---------- task config ----------
     cat > "$CONF_FILE" <<EOF
 [Task]
-Environment=TASK_COMMAND=$TASK_COMMAND
+COMMAND=$TASK_COMMAND
 EOF
 
     # ---------- service ----------
@@ -95,7 +95,7 @@ EOF
     for conf in "$CONF_DIR"/cronless-*.conf; do
       TASK_NAME="$(basename "$conf" | sed 's/^cronless-\(.*\)\.conf$/\1/')"
 
-      CMD=$(grep '^Environment=TASK_COMMAND=' "$conf" | cut -d= -f2-)
+      CMD=$(grep '^COMMAND=' "$conf" | cut -d= -f2-)
       TIMER="$UNIT_DIR/$TASK_NAME.timer"
 
       if [ -f "$TIMER" ]; then
