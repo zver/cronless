@@ -1,5 +1,6 @@
 #!/bin/bash
-# cronless-weekly-report — генерация недельного отчёта через journalctl с вычислением Duration
+# cronless-weekly-report — отчёт по задачам cronless за последнюю неделю
+# показывает статус, количество запусков, успехи/неудачи, длительность
 
 # Получаем список активных задач
 TASKS=($(cronless-manage-tasks list | awk '/^ - / {print $2}'))
@@ -7,59 +8,76 @@ TASKS=($(cronless-manage-tasks list | awk '/^ - / {print $2}'))
 SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
 for TASK in "${TASKS[@]}"; do
-    # Берём все логи за неделю с unix-временем
     LOGS=$(journalctl --user -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
-
     [[ -z "$LOGS" ]] && continue
 
     declare -a START_TIMES
     declare -a END_TIMES
     declare -a RESULTS
 
+    current_start=""
+
+    # Формируем массивы запусков
     while IFS= read -r line; do
-        TIME=$(echo "$line" | awk '{print $1}')
+        TIME=${line%% *}          # unix timestamp с дробью
+        TIME=${TIME%.*}           # округляем до целых секунд
+
         if [[ "$line" =~ Starting ]]; then
-            START_TIMES+=("$TIME")
+            current_start="$TIME"
         elif [[ "$line" =~ Finished ]]; then
+            [[ -n "$current_start" ]] || continue
+            START_TIMES+=("$current_start")
             END_TIMES+=("$TIME")
             RESULTS+=("SUCCESS")
+            current_start=""
         elif [[ "$line" =~ Failed ]]; then
+            [[ -n "$current_start" ]] || continue
+            START_TIMES+=("$current_start")
             END_TIMES+=("$TIME")
             RESULTS+=("FAIL")
+            current_start=""
         fi
     done <<< "$LOGS"
 
     TOTAL=${#RESULTS[@]}
+    [[ $TOTAL -eq 0 ]] && continue
+
     SUCCESS=$(grep -o "SUCCESS" <<< "${RESULTS[*]}" | wc -l)
     FAIL=$((TOTAL - SUCCESS))
 
+    # Последние 20 запусков
     CHARS=""
-    for res in "${RESULTS[@]: -20}"; do
-        [[ "$res" == "SUCCESS" ]] && CHARS+="✔" || CHARS+="✖"
+    START_INDEX=$(( TOTAL > 20 ? TOTAL - 20 : 0 ))
+    for (( i=START_INDEX; i<TOTAL; i++ )); do
+        [[ "${RESULTS[i]}" == "SUCCESS" ]] && CHARS+="✔" || CHARS+="✖"
     done
 
+    # Последний запуск
     LAST_RUN_UNIX=${END_TIMES[-1]}
     LAST_RUN=$(date -d "@$LAST_RUN_UNIX" '+%Y-%m-%d %H:%M:%S')
     LAST_RESULT=${RESULTS[-1]}
 
+    # Вычисляем длительности всех запусков (в минутах)
     DURATIONS=()
     for i in "${!START_TIMES[@]}"; do
-        # Отбрасываем дробную часть, оставляем целое число секунд
-        start=${START_TIMES[i]%.*}
-        end=${END_TIMES[i]%.*}
+        start=${START_TIMES[i]}
+        end=${END_TIMES[i]}
         duration=$(( (end - start) / 60 ))
         DURATIONS+=("$duration")
     done
 
     MAX_DURATION=$(printf "%s\n" "${DURATIONS[@]}" | sort -nr | head -1)
+    LAST_DURATION=${DURATIONS[-1]:-"0"}
 
     echo "Task: $TASK"
     echo "  Last run: $LAST_RUN"
     echo "  Last result: $LAST_RESULT"
     echo "  Total runs: $TOTAL ($CHARS)"
     echo "  Success: $SUCCESS, Fail: $FAIL"
-    echo "  Max duration: ${MAX_DURATION:-"-"}m"
+    echo "  Max duration: ${MAX_DURATION}m"
+    echo "  Last duration: ${LAST_DURATION}m"
     echo ""
 
+    # Очистка массивов перед следующей задачей
     unset START_TIMES END_TIMES RESULTS DURATIONS
 done
