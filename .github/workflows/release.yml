@@ -19,6 +19,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y debhelper devscripts build-essential git
 
       - name: Update debian/changelog from git
+        shell: bash
         run: |
           set -e
 
@@ -28,26 +29,25 @@ jobs:
           # Определяем версию
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
-            RANGE="$(git describe --tags --abbrev=0 HEAD^)..HEAD"
+            LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
           else
-            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
             if [[ -n "$LAST_TAG" ]]; then
               VERSION="${LAST_TAG#v}-git$(date +%Y%m%d)"
-              RANGE="$LAST_TAG..HEAD"
             else
-              VERSION="0.0.0+git$(date +%Y%m%d)"
-              RANGE=""
+              VERSION="0.1.0-git$(date +%Y%m%d)"
             fi
           fi
 
-          # Формируем список изменений
-          if [[ -n "$RANGE" ]]; then
-            CHANGES=$(git log --pretty=format:"  * %s" $RANGE)
+          # Определяем диапазон коммитов
+          if [[ -n "$LAST_TAG" ]]; then
+            RANGE="$LAST_TAG..HEAD"
           else
-            CHANGES=$(git log --pretty=format:"  * %s")
+            RANGE="HEAD"
           fi
 
-          # Генерируем changelog
+          CHANGES=$(git log --pretty=format:"  * %s" $RANGE)
+
           cat > debian/changelog <<EOF
           cronless ($VERSION) unstable; urgency=low
 
