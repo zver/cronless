@@ -18,13 +18,14 @@ if [ ! -f "$CONF_FILE" ]; then
     exit 1
 fi
 
+# CMD прочитан из конфига
 CMD=$(grep '^Environment=TASK_COMMAND=' "$CONF_FILE" | cut -d= -f2-)
 
 START=$(date +%s)
 OUTPUT_FILE="$LOG_DIR/${TASK_NAME}_$(date +%Y%m%d_%H%M%S).log"
 
-# Запуск команды и сохранение stdout+stderr
-$CMD >"$OUTPUT_FILE" 2>&1
+# Запуск команды через bash -c, чтобы корректно работал >
+bash -c "$CMD" >"$OUTPUT_FILE" 2>&1
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$(( (END - START) / 60 ))  # duration in minutes
