@@ -1,10 +1,12 @@
 #!/bin/bash
-# cronless-manage-tasks — управление задачами cronless (без systemd-шаблонов)
+# cronless-manage-tasks — управление задачами cronless (без шаблонов)
 
 set -euo pipefail
 
 UNIT_DIR="$HOME/.config/systemd/user/cronless"
-mkdir -p "$UNIT_DIR"
+CONF_DIR="$HOME/.config/systemd/user/task.d"
+
+mkdir -p "$UNIT_DIR" "$CONF_DIR"
 
 ACTION="${1:-}"
 
@@ -26,11 +28,18 @@ case "$ACTION" in
 
     SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
     TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
+    CONF_FILE="$CONF_DIR/task-${TASK_NAME}.conf"
 
-    if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ]; then
+    if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$CONF_FILE" ]; then
       echo "❌ Task '$TASK_NAME' already exists"
       exit 1
     fi
+
+    # ---------- task config ----------
+    cat > "$CONF_FILE" <<EOF
+[Task]
+Environment=TASK_COMMAND=$TASK_COMMAND
+EOF
 
     # ---------- service ----------
     cat > "$SERVICE_FILE" <<EOF
@@ -39,7 +48,7 @@ Description=Cronless task $TASK_NAME
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/bash -c '$TASK_COMMAND'
+ExecStart=/usr/bin/cronless-run-task $TASK_NAME
 EOF
 
     # ---------- timer ----------
@@ -67,12 +76,13 @@ EOF
     [ $# -eq 2 ] || usage
 
     TASK_NAME="$2"
-    SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
-    TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
 
-    systemctl --user disable --now "$(basename "$TIMER_FILE")" 2>/dev/null || true
+    systemctl --user disable --now "$TASK_NAME.timer" 2>/dev/null || true
 
-    rm -f "$SERVICE_FILE" "$TIMER_FILE"
+    rm -f \
+      "$UNIT_DIR/${TASK_NAME}.service" \
+      "$UNIT_DIR/${TASK_NAME}.timer" \
+      "$CONF_DIR/task-${TASK_NAME}.conf"
 
     systemctl --user daemon-reload
 
@@ -82,17 +92,22 @@ EOF
   list)
     echo "📋 Configured tasks:"
     shopt -s nullglob
-    for timer in "$UNIT_DIR"/*.timer; do
-      TASK_NAME="$(basename "$timer" .timer)"
-      SERVICE="$UNIT_DIR/$TASK_NAME.service"
+    for conf in "$CONF_DIR"/task-*.conf; do
+      TASK_NAME="$(basename "$conf" | sed 's/^task-\(.*\)\.conf$/\1/')"
 
-      SCHEDULE=$(grep '^OnCalendar=' "$timer" | cut -d= -f2-)
-      COMMAND=$(grep '^ExecStart=' "$SERVICE" | sed 's|ExecStart=/usr/bin/bash -c ||')
+      CMD=$(grep '^Environment=TASK_COMMAND=' "$conf" | cut -d= -f2-)
+      TIMER="$UNIT_DIR/$TASK_NAME.timer"
 
-      STATUS=$(systemctl --user is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
+      if [ -f "$TIMER" ]; then
+        SCHEDULE=$(grep '^OnCalendar=' "$TIMER" | cut -d= -f2-)
+        STATUS=$(systemctl --user is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
+      else
+        SCHEDULE="—"
+        STATUS="missing timer"
+      fi
 
       echo " - $TASK_NAME"
-      echo "     command : $COMMAND"
+      echo "     command : $CMD"
       echo "     schedule: $SCHEDULE"
       echo "     status  : $STATUS"
     done
