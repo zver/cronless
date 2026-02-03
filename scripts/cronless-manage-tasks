@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-UNIT_DIR="$HOME/.config/systemd/user/cronless"
+UNIT_DIR="$HOME/.config/systemd/user"
 CONF_DIR="$HOME/.config/systemd/user/task.d"
 
 mkdir -p "$UNIT_DIR" "$CONF_DIR"
@@ -28,7 +28,7 @@ case "$ACTION" in
 
     SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
     TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
-    CONF_FILE="$CONF_DIR/task-${TASK_NAME}.conf"
+    CONF_FILE="$CONF_DIR/cronless-${TASK_NAME}.conf"
 
     if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$CONF_FILE" ]; then
       echo "❌ Task '$TASK_NAME' already exists"
@@ -82,7 +82,7 @@ EOF
     rm -f \
       "$UNIT_DIR/${TASK_NAME}.service" \
       "$UNIT_DIR/${TASK_NAME}.timer" \
-      "$CONF_DIR/task-${TASK_NAME}.conf"
+      "$CONF_DIR/cronless-${TASK_NAME}.conf"
 
     systemctl --user daemon-reload
 
@@ -92,8 +92,8 @@ EOF
   list)
     echo "📋 Configured tasks:"
     shopt -s nullglob
-    for conf in "$CONF_DIR"/task-*.conf; do
-      TASK_NAME="$(basename "$conf" | sed 's/^task-\(.*\)\.conf$/\1/')"
+    for conf in "$CONF_DIR"/cronless-*.conf; do
+      TASK_NAME="$(basename "$conf" | sed 's/^cronless-\(.*\)\.conf$/\1/')"
 
       CMD=$(grep '^Environment=TASK_COMMAND=' "$conf" | cut -d= -f2-)
       TIMER="$UNIT_DIR/$TASK_NAME.timer"

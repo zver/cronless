@@ -12,7 +12,7 @@ LOG_DIR="$HOME/task_logs/logs"
 STATUS_DIR="$HOME/task_logs/status"
 mkdir -p "$LOG_DIR" "$STATUS_DIR"
 
-CONF_FILE="$CONFIG_DIR/task-${TASK_NAME}.conf"
+CONF_FILE="$CONFIG_DIR/cronless-${TASK_NAME}.conf"
 if [ ! -f "$CONF_FILE" ]; then
     echo "Task $TASK_NAME not found!"
     exit 1
