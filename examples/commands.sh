@@ -1,8 +1,8 @@
-# список задач
-cronless-manage-tasks list
-
 # Добавить ежедневную задачу
 cronless-manage-tasks add backup "/usr/local/bin/backup_db.sh" daily
+
+# Добавить еженедельную задачу с отправкой отчета cronless на email
+cronless-manage-tasks add cronless-report-to-email "cronless-weekly-report 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
 
 # Удалить задачу
 cronless-manage-tasks remove backup
