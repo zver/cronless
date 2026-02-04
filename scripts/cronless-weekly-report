@@ -70,12 +70,9 @@ for TASK in "${TASKS[@]}"; do
     LAST_DURATION=${DURATIONS[-1]:-"0"}
 
     echo "Task: $TASK"
-    echo "  Last run: $LAST_RUN"
-    echo "  Last result: $LAST_RESULT"
-    echo "  Total runs: $TOTAL ($CHARS)"
-    echo "  Success: $SUCCESS, Fail: $FAIL"
+    echo "  Success runs: $SUCCESS/$TOTAL ($CHARS)"
     echo "  Max duration: ${MAX_DURATION}m"
-    echo "  Last duration: ${LAST_DURATION}m"
+    echo "  Last run: $LAST_RUN (${CHARS: -1} $LAST_RESULT, ${LAST_DURATION}m)"
     echo ""
 
     # Очистка массивов перед следующей задачей
