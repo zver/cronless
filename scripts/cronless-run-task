@@ -7,23 +7,16 @@ if [ -z "$TASK_NAME" ]; then
     exit 1
 fi
 
-CONFIG_DIR="$HOME/.config/systemd/user/task.d"
+TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
 
-CONF_FILE="$CONFIG_DIR/cronless-${TASK_NAME}.conf"
-if [ ! -f "$CONF_FILE" ]; then
+TASK_FILE="$TASKS_DIR/${TASK_NAME}"
+if [ ! -f "$TASK_FILE" ]; then
     echo "Task $TASK_NAME not found!" >&2
     exit 1
 fi
 
-# CMD прочитан из конфига
-CMD=$(grep '^COMMAND=' "$CONF_FILE" | cut -d= -f2-)
-if [[ -z "$CMD" ]]; then
-    echo "Task command not found in $CONF_FILE!" >&2
-    exit 1
-fi
+$TASK_FILE
 
-# Запуск команды через bash -c, чтобы корректно работал >
-bash -c "$CMD"
 EXIT_CODE=$?
 
 exit $EXIT_CODE

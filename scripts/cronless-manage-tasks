@@ -4,9 +4,9 @@
 set -euo pipefail
 
 UNIT_DIR="$HOME/.config/systemd/user"
-CONF_DIR="$HOME/.config/systemd/user/task.d"
+TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
 
-mkdir -p "$UNIT_DIR" "$CONF_DIR"
+mkdir -p "$UNIT_DIR" "$TASKS_DIR"
 
 ACTION="${1:-}"
 
@@ -18,6 +18,23 @@ usage() {
   exit 1
 }
 
+is_one_line_bash_script() {
+    local file="$1"
+
+    # файл существует и исполняемый
+    [[ -f "$file" && -x "$file" ]] || return 1
+
+    # проверка shebang на bash
+    head -n 1 "$file" | grep -Eq '^#!.*/(env +)?bash' || return 1
+
+    # считаем строки, содержащие НЕ только пробелы/табы
+    local lines
+    lines=$(grep -Ev '^[[:space:]]*$' "$file" | wc -l)
+
+    [[ "$lines" -eq 1 ]]
+}
+
+
 case "$ACTION" in
   add)
     [ $# -eq 4 ] || usage
@@ -28,18 +45,19 @@ case "$ACTION" in
 
     SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
     TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
-    CONF_FILE="$CONF_DIR/cronless-${TASK_NAME}.conf"
+    TASK_FILE="$TASKS_DIR/${TASK_NAME}"
 
-    if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$CONF_FILE" ]; then
+    if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$TASK_FILE" ]; then
       echo "❌ Task '$TASK_NAME' already exists"
       exit 1
     fi
 
     # ---------- task config ----------
-    cat > "$CONF_FILE" <<EOF
-[Task]
-COMMAND=$TASK_COMMAND
+    cat > "$TASK_FILE" <<EOF
+#!/usr/bin/env bash
+$TASK_COMMAND
 EOF
+    chmod +x "$TASK_FILE"
 
     # ---------- service ----------
     cat > "$SERVICE_FILE" <<EOF
@@ -82,7 +100,7 @@ EOF
     rm -f \
       "$UNIT_DIR/${TASK_NAME}.service" \
       "$UNIT_DIR/${TASK_NAME}.timer" \
-      "$CONF_DIR/cronless-${TASK_NAME}.conf"
+      "$TASKS_DIR/${TASK_NAME}"
 
     systemctl --user daemon-reload
 
@@ -92,10 +110,15 @@ EOF
   list)
     echo "📋 Configured tasks:"
     shopt -s nullglob
-    for conf in "$CONF_DIR"/cronless-*.conf; do
-      TASK_NAME="$(basename "$conf" | sed 's/^cronless-\(.*\)\.conf$/\1/')"
+    for TASK_FILE in "$TASKS_DIR"/*; do
+      TASK_NAME="$(basename "$TASK_FILE)"
 
-      CMD=$(grep '^COMMAND=' "$conf" | cut -d= -f2-)
+      CMD="$TASK_FILE"
+      if is_one_line_bash_script "$TASK_FILE"; then
+        line=$(sed -E '1{/^#!.*bash/d} /^[[:space:]]*$/d' $TASK_FILE)
+        [[ $(wc -l <<<"$line") -eq 1 ]] && CMD="$line"
+      fi
+
       TIMER="$UNIT_DIR/$TASK_NAME.timer"
 
       if [ -f "$TIMER" ]; then
@@ -107,9 +130,9 @@ EOF
       fi
 
       echo " - $TASK_NAME"
-      echo "     command : $CMD"
-      echo "     schedule: $SCHEDULE"
-      echo "     status  : $STATUS"
+      echo "     command    : $CMD"
+      echo "     schedule   : $SCHEDULE"
+      echo "     status     : $STATUS"
     done
     ;;
 
