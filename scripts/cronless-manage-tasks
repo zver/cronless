@@ -103,6 +103,8 @@ EOF
       "$TASKS_DIR/${TASK_NAME}"
 
     systemctl --user daemon-reload
+    systemctl --user reset-failed "$TASK_NAME.service"
+
 
     echo "🗑 Task '$TASK_NAME' removed"
     ;;
