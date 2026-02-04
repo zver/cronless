@@ -1,0 +1,17 @@
+#!/bin/bash -e
+
+ACCOUNT=zver
+REPO=cronless
+
+tmpdir=$(mktemp -d /tmp/cronless-install.XXXXXX)
+trap 'rm -rf "$tmpdir"' EXIT
+
+cd "$tmpdir"
+
+curl -s https://api.github.com/repos/$ACCOUNT/$REPO/releases/latest \
+| grep "browser_download_url.*deb" \
+| cut -d : -f 2,3 \
+| tr -d \" \
+| wget -qi -
+
+sudo dpkg -i *.deb
