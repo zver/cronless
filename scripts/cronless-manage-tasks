@@ -29,9 +29,9 @@ is_one_line_bash_script() {
 
     # считаем строки, содержащие НЕ только пробелы/табы
     local lines
-    lines=$(grep -Ev '^[[:space:]]*$' "$file" | wc -l)
+    lines=$(grep -cEv '^[[:space:]]*$' "$file")
 
-    [[ "$lines" -eq 1 ]]
+    [[ "$lines" -eq 2 ]]
 }
 
 
@@ -111,12 +111,12 @@ EOF
     echo "📋 Configured tasks:"
     shopt -s nullglob
     for TASK_FILE in "$TASKS_DIR"/*; do
-      TASK_NAME="$(basename "$TASK_FILE)"
+      TASK_NAME="${TASK_FILE##*/}"
 
       CMD="$TASK_FILE"
       if is_one_line_bash_script "$TASK_FILE"; then
-        line=$(sed -E '1{/^#!.*bash/d} /^[[:space:]]*$/d' $TASK_FILE)
-        [[ $(wc -l <<<"$line") -eq 1 ]] && CMD="$line"
+        line=$(sed -E '1{/^#!.*bash/d}; /^[[:space:]]*$/d' "$TASK_FILE")
+        [[ $(wc -l <<<"$line") -eq 1 ]] && CMD=$line
       fi
 
       TIMER="$UNIT_DIR/$TASK_NAME.timer"
