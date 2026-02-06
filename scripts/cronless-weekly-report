@@ -9,7 +9,6 @@ SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
 for TASK in "${TASKS[@]}"; do
     LOGS=$(journalctl --user -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
-    [[ -z "$LOGS" ]] && continue
 
     declare -a START_TIMES
     declare -a END_TIMES
@@ -40,7 +39,6 @@ for TASK in "${TASKS[@]}"; do
     done <<< "$LOGS"
 
     TOTAL=${#RESULTS[@]}
-    [[ $TOTAL -eq 0 ]] && continue
 
     SUCCESS=$(grep -o "SUCCESS" <<< "${RESULTS[*]}" | wc -l)
     FAIL=$((TOTAL - SUCCESS))
@@ -53,26 +51,39 @@ for TASK in "${TASKS[@]}"; do
     done
 
     # Последний запуск
-    LAST_RUN_UNIX=${END_TIMES[-1]}
-    LAST_RUN=$(date -d "@$LAST_RUN_UNIX" '+%Y-%m-%d %H:%M:%S')
-    LAST_RESULT=${RESULTS[-1]}
+    if (( ${#END_TIMES[@]} > 0 )); then
+        LAST_RUN_UNIX=${END_TIMES[-1]}
+        LAST_RUN=$(date -d "@$LAST_RUN_UNIX" '+%Y-%m-%d %H:%M:%S')
+        LAST_RESULT=${RESULTS[-1]}
 
-    # Вычисляем длительности всех запусков (в минутах)
-    DURATIONS=()
-    for i in "${!START_TIMES[@]}"; do
-        start=${START_TIMES[i]}
-        end=${END_TIMES[i]}
-        duration=$(( (end - start) / 60 ))
-        DURATIONS+=("$duration")
-    done
+        # Вычисляем длительности всех запусков (в минутах)
+        DURATIONS=()
+        for i in "${!START_TIMES[@]}"; do
+            start=${START_TIMES[i]}
+            end=${END_TIMES[i]}
+            duration=$(( (end - start) / 60 ))
+            DURATIONS+=("$duration")
+        done
 
-    MAX_DURATION=$(printf "%s\n" "${DURATIONS[@]}" | sort -nr | head -1)
-    LAST_DURATION=${DURATIONS[-1]:-"0"}
+        MAX_DURATION=$(printf "%s\n" "${DURATIONS[@]}" | sort -nr | head -1)
+        LAST_DURATION=${DURATIONS[-1]:-"0"}
+        LAST_CHAR=${CHARS: -1}
+    else
+        LAST_RUN="-"
+        LAST_RESULT="-"
+        LAST_DURATION="-"
+        LAST_CHAR="-"
+        MAX_DURATION="-"
+    fi
 
-    echo "Task: $TASK"
+    width=47
+    TITLE="$LAST_CHAR $TASK"
+    printf -v pad "%*s" $((width - ${#TITLE})) ""
+    pad=${pad// /=}
+    printf "%s %s\n" "$TITLE" "$pad"
     echo "  Success runs: $SUCCESS/$TOTAL ($CHARS)"
     echo "  Max duration: ${MAX_DURATION}m"
-    echo "  Last run: $LAST_RUN (${CHARS: -1} $LAST_RESULT, ${LAST_DURATION}m)"
+    echo "  Last run: $LAST_RUN ($LAST_CHAR $LAST_RESULT, ${LAST_DURATION}m)"
     echo ""
 
     # Очистка массивов перед следующей задачей
