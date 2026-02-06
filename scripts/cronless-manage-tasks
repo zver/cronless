@@ -15,6 +15,7 @@ usage() {
   echo "  $0 add <task_name> \"<command>\" \"<OnCalendar>\""
   echo "  $0 remove <task_name>"
   echo "  $0 list"
+  echo "  $0 logs <task_name>"
   exit 1
 }
 
@@ -139,7 +140,9 @@ EOF
     ;;
 
   logs)
-    journalctl --user -u $TASK_NAME.service
+    [ $# -eq 2 ] || usage
+    TASK_NAME="$2"
+    journalctl --user -u "${TASK_NAME}.service"
     ;;
 
   *)
