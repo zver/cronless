@@ -140,6 +140,8 @@ EOF
 
   logs)
     journalctl --user -u $TASK_NAME.service
+    ;;
+
   *)
     usage
     ;;
