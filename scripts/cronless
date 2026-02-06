@@ -157,6 +157,7 @@ EOF
     $TASK_FILE
     EXIT_CODE=$?
     exit $EXIT_CODE
+    ;;
 
   *)
     usage
