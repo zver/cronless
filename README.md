@@ -9,10 +9,15 @@
 
 - Лёгкая замена cron, без постоянной нагрузки на систему
 - Добавление и удаление задач через CLI:
-  - `cronless-manage-tasks add <name> "<command>" "<schedule>"`
-  - `cronless-manage-tasks remove <name>`
-  - `cronless-manage-tasks list`
+  - `cronless add <name> "<command>" "<schedule>"`
+  - `cronless remove <name>`
+  - `cronless list`
+  - `cronless run <name>`
+  - `cronless logs <name>`
 - Еженедельный отчёт:
+
+```cronless-weekly-report```
+
   - количество запусков
   - успешные и неудачные выполнения
   - максимальное время выполнения
@@ -62,22 +67,27 @@ loginctl show-user <username> | grep Linger
 
 ```
 # Добавить ежедневную задачу
-cronless-manage-tasks add backup "/usr/local/bin/backup_db.sh" daily
+cronless add backup "/usr/local/bin/backup_db.sh" daily
 
 # Добавить еженедельную задачу с отправкой отчета cronless на email
-cronless-manage-tasks add cronless-report-to-email "cronless-weekly-report 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
+cronless add cronless-report-to-email "cronless-weekly-report 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
 
 # Удалить задачу
-cronless-manage-tasks remove backup
+cronless remove backup
 
 # Список задач с последним результатом
-cronless-manage-tasks list
+cronless list
+
+# Получить логи
+cronless logs backup
 
 # запустить задачу вручную
-cronless-run-task backup
+cronless run backup
 
 # получить недельный отчёт
 cronless-weekly-report
+
+# Отправить его на почту
 cronless-weekly-report | mail -s "Weekly Tasks Report" you@example.com
 ```
 

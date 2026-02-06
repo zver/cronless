@@ -3,7 +3,7 @@
 # показывает статус, количество запусков, успехи/неудачи, длительность
 
 # Получаем список активных задач
-TASKS=($(cronless-manage-tasks list | awk '/^ - / {print $2}'))
+TASKS=($(cronless list | awk '/^ - / {print $2}'))
 
 SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
