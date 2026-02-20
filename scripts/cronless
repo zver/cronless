@@ -6,6 +6,15 @@ set -euo pipefail
 UNIT_DIR="$HOME/.config/systemd/user"
 TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
 
+
+if [[ $USER == "root" ]]; then
+  SYSTEMCTL="systemctl"
+  JOURNALCTL="journalctl"
+else
+  SYSTEMCTL="systemctl --user"
+  JOURNALCTL="journalctl --user"
+fi
+
 mkdir -p "$UNIT_DIR" "$TASKS_DIR"
 
 ACTION="${1:-}"
@@ -84,8 +93,8 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-    systemctl --user daemon-reload
-    systemctl --user enable --now "$(basename "$TIMER_FILE")"
+    $SYSTEMCTL daemon-reload
+    $SYSTEMCTL enable --now "$(basename "$TIMER_FILE")"
 
     echo "✅ Task '$TASK_NAME' added"
     echo "   Command : $TASK_COMMAND"
@@ -97,15 +106,15 @@ EOF
 
     TASK_NAME="$2"
 
-    systemctl --user disable --now "$TASK_NAME.timer" 2>/dev/null || true
+    $SYSTEMCTL disable --now "$TASK_NAME.timer" 2>/dev/null || true
 
     rm -f \
       "$UNIT_DIR/${TASK_NAME}.service" \
       "$UNIT_DIR/${TASK_NAME}.timer" \
       "$TASKS_DIR/${TASK_NAME}"
 
-    systemctl --user daemon-reload
-    systemctl --user reset-failed "$TASK_NAME.service"
+    $SYSTEMCTL daemon-reload
+    $SYSTEMCTL reset-failed "$TASK_NAME.service"
 
 
     echo "🗑 Task '$TASK_NAME' removed"
@@ -127,7 +136,7 @@ EOF
 
       if [ -f "$TIMER" ]; then
         SCHEDULE=$(grep '^OnCalendar=' "$TIMER" | cut -d= -f2-)
-        STATUS=$(systemctl --user is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
+        STATUS=$($SYSTEMCTL is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
       else
         SCHEDULE="—"
         STATUS="missing timer"
@@ -143,7 +152,7 @@ EOF
   logs)
     [ $# -eq 2 ] || usage
     TASK_NAME="$2"
-    journalctl --user -u "${TASK_NAME}.service"
+    $JOURNALCTL -u "${TASK_NAME}.service"
     ;;
 
   run)

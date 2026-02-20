@@ -7,8 +7,14 @@ TASKS=($(cronless list | awk '/^ - / {print $2}'))
 
 SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
+if [[ $USER == "root" ]]; then
+  JOURNALCTL="journalctl"
+else
+  JOURNALCTL="journalctl --user"
+fi
+
 for TASK in "${TASKS[@]}"; do
-    LOGS=$(journalctl --user -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
+    LOGS=$($JOURNALCTL -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
 
     declare -a START_TIMES
     declare -a END_TIMES
