@@ -3,8 +3,12 @@
 
 set -euo pipefail
 
+SYSTEMCTL="systemctl --user"
+JOURNALCTL="journalctl --user"
 UNIT_DIR="$HOME/.config/systemd/user"
 TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
+
+ACTION="${1:-}"
 
 if [[ $# -gt 1 ]]; then # It's command with task name in params
   TASK_NAME="$2"
@@ -13,17 +17,8 @@ if [[ $# -gt 1 ]]; then # It's command with task name in params
   TASK_FILE="$TASKS_DIR/${TASK_NAME}"
 fi
 
-if [[ $USER == "root" ]]; then
-  SYSTEMCTL="systemctl"
-  JOURNALCTL="journalctl"
-else
-  SYSTEMCTL="systemctl --user"
-  JOURNALCTL="journalctl --user"
-fi
-
-mkdir -p "$UNIT_DIR" "$TASKS_DIR"
-
-ACTION="${1:-}"
+[[ -d "$UNIT_DIR" ]] || mkdir -p "$UNIT_DIR"
+[[ -d "$TASKS_DIR" ]] || mkdir -p "$TASKS_DIR"
 
 usage() {
   echo "Usage:"
@@ -64,6 +59,8 @@ case "$ACTION" in
       echo "❌ Task '$TASK_NAME' already exists"
       exit 1
     fi
+
+    loginctl enable-linger "$USER"
 
     # ---------- task config ----------
     cat > "$TASK_FILE" <<EOF
