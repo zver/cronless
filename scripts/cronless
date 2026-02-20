@@ -5,7 +5,10 @@ set -euo pipefail
 
 UNIT_DIR="$HOME/.config/systemd/user"
 TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
-
+TASK_NAME="$2"
+SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
+TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
+TASK_FILE="$TASKS_DIR/${TASK_NAME}"
 
 if [[ $USER == "root" ]]; then
   SYSTEMCTL="systemctl"
@@ -26,6 +29,8 @@ usage() {
   echo "  $0 list"
   echo "  $0 run <task_name>"
   echo "  $0 logs <task_name>"
+  echo "  $0 enable <task_name>"
+  echo "  $0 disable <task_name>"
   exit 1
 }
 
@@ -45,18 +50,12 @@ is_one_line_bash_script() {
     [[ "$lines" -eq 2 ]]
 }
 
-
 case "$ACTION" in
   add)
     [ $# -eq 4 ] || usage
 
-    TASK_NAME="$2"
     TASK_COMMAND="$3"
     TASK_SCHEDULE="$4"
-
-    SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
-    TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
-    TASK_FILE="$TASKS_DIR/${TASK_NAME}"
 
     if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$TASK_FILE" ]; then
       echo "❌ Task '$TASK_NAME' already exists"
@@ -101,10 +100,8 @@ EOF
     echo "   Schedule: $TASK_SCHEDULE"
     ;;
 
-  remove)
+  remove|rm)
     [ $# -eq 2 ] || usage
-
-    TASK_NAME="$2"
 
     $SYSTEMCTL disable --now "cronless-$TASK_NAME.timer" 2>/dev/null || true
 
@@ -116,11 +113,10 @@ EOF
     $SYSTEMCTL daemon-reload
     $SYSTEMCTL reset-failed "cronless-$TASK_NAME.service"
 
-
     echo "🗑 Task '$TASK_NAME' removed"
     ;;
 
-  list)
+  list|ls)
     echo "📋 Configured tasks:"
     shopt -s nullglob
     for TASK_FILE in "$TASKS_DIR"/*; do
@@ -151,19 +147,27 @@ EOF
 
   logs)
     [ $# -eq 2 ] || usage
-    TASK_NAME="$2"
-    $JOURNALCTL -u "cronless-${TASK_NAME}.service"
+    $JOURNALCTL -u "${SERVICE_FILE##*/}"
     ;;
 
-  run)
+  run|exec|start)
     [ $# -eq 2 ] || usage
-    TASK_NAME="$2"
-    TASK_FILE="$TASKS_DIR/${TASK_NAME}"
     if [ ! -f "$TASK_FILE" ]; then
         echo "Task $TASK_NAME not found!" >&2
         exit 1
     fi
     $TASK_FILE
+    EXIT_CODE=$?
+    exit $EXIT_CODE
+    ;;
+
+  enable|disable)
+    [ $# -eq 2 ] || usage
+    if [ ! -f "$TASK_FILE" ]; then
+        echo "Task $TASK_NAME not found!" >&2
+        exit 1
+    fi
+    $SYSTEMCTL "$1" "${TIMER_FILE##*/}"
     EXIT_CODE=$?
     exit $EXIT_CODE
     ;;
