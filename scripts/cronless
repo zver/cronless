@@ -5,10 +5,13 @@ set -euo pipefail
 
 UNIT_DIR="$HOME/.config/systemd/user"
 TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
-TASK_NAME="$2"
-SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
-TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
-TASK_FILE="$TASKS_DIR/${TASK_NAME}"
+
+if [[ $# -gt 1 ]]; then # It's command with task name in params
+  TASK_NAME="$2"
+  SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
+  TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
+  TASK_FILE="$TASKS_DIR/${TASK_NAME}"
+fi
 
 if [[ $USER == "root" ]]; then
   SYSTEMCTL="systemctl"
@@ -52,7 +55,7 @@ is_one_line_bash_script() {
 
 case "$ACTION" in
   add)
-    [ $# -eq 4 ] || usage
+    [[ $# -eq 4 ]] || usage
 
     TASK_COMMAND="$3"
     TASK_SCHEDULE="$4"
@@ -101,7 +104,7 @@ EOF
     ;;
 
   remove|rm)
-    [ $# -eq 2 ] || usage
+    [[ $# -eq 2 ]] || usage
 
     $SYSTEMCTL disable --now "cronless-$TASK_NAME.timer" 2>/dev/null || true
 
@@ -146,12 +149,12 @@ EOF
     ;;
 
   logs)
-    [ $# -eq 2 ] || usage
+    [[ $# -eq 2 ]] || usage
     $JOURNALCTL -u "${SERVICE_FILE##*/}"
     ;;
 
   run|exec|start)
-    [ $# -eq 2 ] || usage
+    [[ $# -eq 2 ]] || usage
     if [ ! -f "$TASK_FILE" ]; then
         echo "Task $TASK_NAME not found!" >&2
         exit 1
@@ -162,7 +165,7 @@ EOF
     ;;
 
   enable|disable)
-    [ $# -eq 2 ] || usage
+    [[ $# -eq 2 ]] || usage
     if [ ! -f "$TASK_FILE" ]; then
         echo "Task $TASK_NAME not found!" >&2
         exit 1
