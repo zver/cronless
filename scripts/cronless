@@ -54,8 +54,8 @@ case "$ACTION" in
     TASK_COMMAND="$3"
     TASK_SCHEDULE="$4"
 
-    SERVICE_FILE="$UNIT_DIR/${TASK_NAME}.service"
-    TIMER_FILE="$UNIT_DIR/${TASK_NAME}.timer"
+    SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
+    TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
     TASK_FILE="$TASKS_DIR/${TASK_NAME}"
 
     if [ -e "$SERVICE_FILE" ] || [ -e "$TIMER_FILE" ] || [ -e "$TASK_FILE" ]; then
@@ -106,15 +106,15 @@ EOF
 
     TASK_NAME="$2"
 
-    $SYSTEMCTL disable --now "$TASK_NAME.timer" 2>/dev/null || true
+    $SYSTEMCTL disable --now "cronless-$TASK_NAME.timer" 2>/dev/null || true
 
     rm -f \
-      "$UNIT_DIR/${TASK_NAME}.service" \
-      "$UNIT_DIR/${TASK_NAME}.timer" \
+      "$UNIT_DIR/cronless-${TASK_NAME}.service" \
+      "$UNIT_DIR/cronless-${TASK_NAME}.timer" \
       "$TASKS_DIR/${TASK_NAME}"
 
     $SYSTEMCTL daemon-reload
-    $SYSTEMCTL reset-failed "$TASK_NAME.service"
+    $SYSTEMCTL reset-failed "cronless-$TASK_NAME.service"
 
 
     echo "🗑 Task '$TASK_NAME' removed"
@@ -132,11 +132,11 @@ EOF
         [[ $(wc -l <<<"$line") -eq 1 ]] && CMD=$line
       fi
 
-      TIMER="$UNIT_DIR/$TASK_NAME.timer"
+      TIMER="$UNIT_DIR/cronless-$TASK_NAME.timer"
 
       if [ -f "$TIMER" ]; then
         SCHEDULE=$(grep '^OnCalendar=' "$TIMER" | cut -d= -f2-)
-        STATUS=$($SYSTEMCTL is-active "$TASK_NAME.timer" 2>/dev/null || echo inactive)
+        STATUS=$($SYSTEMCTL is-active "cronless-$TASK_NAME.timer" 2>/dev/null || echo inactive)
       else
         SCHEDULE="—"
         STATUS="missing timer"
@@ -152,7 +152,7 @@ EOF
   logs)
     [ $# -eq 2 ] || usage
     TASK_NAME="$2"
-    $JOURNALCTL -u "${TASK_NAME}.service"
+    $JOURNALCTL -u "cronless-${TASK_NAME}.service"
     ;;
 
   run)
