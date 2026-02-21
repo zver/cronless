@@ -2,6 +2,7 @@
 # cronless — управление задачами cronless
 
 set -euo pipefail
+[[ -z $USER ]] && USER="$(id -un)"
 
 if [[ $USER == root ]]; then
   SYSTEMCTL="systemctl"
