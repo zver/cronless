@@ -138,7 +138,7 @@ EOF
 
       if [ -f "$TIMER" ]; then
         SCHEDULE=$(grep '^OnCalendar=' "$TIMER" | cut -d= -f2-)
-        STATUS=$($SYSTEMCTL is-active "cronless-$TASK_NAME.timer" 2>/dev/null)
+        STATUS=$($SYSTEMCTL is-active "cronless-$TASK_NAME.timer" 2>/dev/null || true)
       else
         SCHEDULE="—"
         STATUS="missing timer"
