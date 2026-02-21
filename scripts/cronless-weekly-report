@@ -14,7 +14,7 @@ else
 fi
 
 for TASK in "${TASKS[@]}"; do
-    LOGS=$($JOURNALCTL -u "${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
+    LOGS=$($JOURNALCTL -u "cronless-${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
 
     declare -a START_TIMES
     declare -a END_TIMES
