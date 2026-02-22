@@ -3,6 +3,7 @@
 
 set -euo pipefail
 [[ ! -v USER ]] && USER="$(id -un)"
+[[ ! -v HOME ]] && HOME="$(getent passwd "$USER" | cut -d: -f6)"
 
 if [[ $USER == root ]]; then
   SYSTEMCTL="systemctl"
