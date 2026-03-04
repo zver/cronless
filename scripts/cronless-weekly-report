@@ -1,17 +1,18 @@
 #!/bin/bash
 # cronless-weekly-report — отчёт по задачам cronless за последнюю неделю
 # показывает статус, количество запусков, успехи/неудачи, длительность
-
-# Получаем список активных задач
-TASKS=($(cronless list | awk '/^ - / {print $2}'))
-
-SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
-
+set -euo pipefail
+[[ ! -v USER ]] && USER="$(id -un)"
 if [[ $USER == "root" ]]; then
   JOURNALCTL="journalctl"
 else
   JOURNALCTL="journalctl --user"
 fi
+
+# Получаем список активных задач
+TASKS=($(cronless list | awk '/^ - / {print $2}'))
+
+SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 
 for TASK in "${TASKS[@]}"; do
     LOGS=$($JOURNALCTL -u "cronless-${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
