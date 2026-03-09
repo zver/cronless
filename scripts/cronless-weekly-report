@@ -17,9 +17,9 @@ SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
 for TASK in "${TASKS[@]}"; do
     LOGS=$($JOURNALCTL -u "cronless-${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
 
-    declare -a START_TIMES
-    declare -a END_TIMES
-    declare -a RESULTS
+    declare -a START_TIMES=()
+    declare -a END_TIMES=()
+    declare -a RESULTS=()
 
     current_start=""
 
