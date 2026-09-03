@@ -1,7 +1,22 @@
 #!/bin/bash
-# cronless-weekly-report — отчёт по задачам cronless за последнюю неделю
+# cronless-report — отчёт по задачам cronless за произвольный период
 # показывает статус, количество запусков, успехи/неудачи, длительность
 set -euo pipefail
+
+# Значения по умолчанию
+DAYS=7
+NUM_RUNS=20
+
+# Обработка аргументов
+while getopts "d:n:" opt; do
+  case $opt in
+    d) DAYS="$OPTARG" ;;
+    n) NUM_RUNS="$OPTARG" ;;
+    *) echo "Usage: $0 [-d days] [-n runs]"; exit 1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 [[ ! -v USER ]] && USER="$(id -un)"
 if [[ $USER == "root" ]]; then
   JOURNALCTL="journalctl"
@@ -12,7 +27,7 @@ fi
 # Получаем список активных задач
 TASKS=($(cronless list | awk '/^ - / {print $2}'))
 
-SINCE="$(date -d '7 days ago' '+%Y-%m-%d %H:%M:%S')"
+SINCE="$(date -d "$DAYS days ago" '+%Y-%m-%d %H:%M:%S')"
 
 for TASK in "${TASKS[@]}"; do
     LOGS=$($JOURNALCTL -u "cronless-${TASK}.service" --since "$SINCE" --no-pager --output=short-unix)
@@ -50,9 +65,9 @@ for TASK in "${TASKS[@]}"; do
     SUCCESS=$(grep -o "SUCCESS" <<< "${RESULTS[*]}" | wc -l)
     FAIL=$((TOTAL - SUCCESS))
 
-    # Последние 20 запусков
+    # Последние N запусков
     CHARS=""
-    START_INDEX=$(( TOTAL > 20 ? TOTAL - 20 : 0 ))
+    START_INDEX=$(( TOTAL > NUM_RUNS ? TOTAL - NUM_RUNS : 0 ))
     for (( i=START_INDEX; i<TOTAL; i++ )); do
         [[ "${RESULTS[i]}" == "SUCCESS" ]] && CHARS+="✔" || CHARS+="✖"
     done
