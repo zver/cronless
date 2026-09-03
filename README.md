@@ -16,12 +16,11 @@
   - `cronless logs <name>`
 - Еженедельный отчёт:
 
-```cronless-weekly-report```
+```cronless-report```
 
-  - количество запусков
+  - количество запусков за последние дни
   - успешные и неудачные выполнения
   - максимальное время выполнения
-  - последние 20 запусков
 - Поддержка systemd timers с `Persistent=true` — задачи выполняются даже если ноут спал
 
 ---
@@ -51,7 +50,7 @@ scripts - скрипты самого cronless
 cronless add backup "/usr/local/bin/backup_db.sh" daily
 
 # Добавить еженедельную задачу с отправкой отчета cronless на email
-cronless add cronless-report-to-email "cronless-weekly-report 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
+cronless add cronless-report-to-email "cronless-report -d 7 -n 20 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
 
 # Удалить задачу
 cronless remove backup
@@ -72,10 +71,10 @@ cronless disable backup
 cronless disable backup
 
 # получить недельный отчёт
-cronless-weekly-report
+cronless-report -d 7 -n 20
 
 # Отправить его на почту
-cronless-weekly-report | mail -s "Weekly Tasks Report" you@example.com
+cronless-report -d 7 -n 20 | mail -s "Weekly Tasks Report" you@example.com
 ```
 
 ---

@@ -8,12 +8,12 @@ all:
 install:
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 0755 scripts/cronless $(DESTDIR)$(BINDIR)/
-	install -m 0755 scripts/cronless-weekly-report $(DESTDIR)$(BINDIR)/
+	install -m 0755 scripts/cronless-report $(DESTDIR)$(BINDIR)/
 
 	install -d $(DESTDIR)$(SYSTEMD_USER_DIR)
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless
-	rm -f $(DESTDIR)$(BINDIR)/cronless-weekly-report
+	rm -f $(DESTDIR)$(BINDIR)/cronless-report
 
 .PHONY: all install uninstall
