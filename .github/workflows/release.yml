@@ -69,7 +69,7 @@ jobs:
 
           $CHANGES
 
-          -- $AUTHOR  $DATE
+           -- $AUTHOR  $DATE
           EOF
 
           cat debian/changelog
