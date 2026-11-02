@@ -118,7 +118,7 @@ jobs:
           if [[ -n "$OLD_TAGS" ]]; then
             while IFS= read -r tag; do
               echo "Deleting old release: $tag"
-              gh release delete "$tag" --yes
+              gh release delete "$tag" --yes --repo "$GITHUB_REPOSITORY"
               gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}"
             done <<< "$OLD_TAGS"
           else
