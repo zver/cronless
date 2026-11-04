@@ -1,6 +1,7 @@
 debian/.debhelper/
 debian/cronless.substvars
-debian/cronless/
+debian/cronless/usr/bin/
+debian/cronless/usr/lib/
 debian/debhelper-build-stamp
 debian/files
 INSTRUCTIONS.md
