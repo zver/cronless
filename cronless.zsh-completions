@@ -1,5 +1,5 @@
 
-#compdef cronless
+#compdef cronless cl
 
 _cronless() {
     local -a actions
