@@ -42,3 +42,4 @@ _cronless_args() {
     esac
 }
 
+compdef _cronless cronless cl
