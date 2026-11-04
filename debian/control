@@ -7,6 +7,6 @@ Standards-Version: 4.5.0
 
 Package: cronless
 Architecture: all
-Depends: ${misc:Depends}, systemd
+Depends: ${misc:Depends}, fzf, systemd
 Description: Cronless — лёгкий менеджер задач на systemd timers
  Упрощённая альтернатива cron для ноутбуков и десктопов.

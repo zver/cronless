@@ -17,12 +17,28 @@ TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
 
 ACTION="${1:-}"
 
-if [[ $# -gt 1 ]]; then # It's command with task name in params
+# Actions that require a task name as only second arg
+TASK_NAME_ACTIONS=( remove logs run enable disable edit )
+
+if [[ $# -ge 2 ]]; then
   TASK_NAME="$2"
+elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 ]]; then
+  for a in "${TASK_NAME_ACTIONS[@]}"; do
+    if [[ "$ACTION" == "$a" ]]; then
+      if [[ -t 0 ]]; then
+        prompt_task_name
+      else
+        usage
+      fi
+      break
+    fi
+  done
+fi
+[[ -n "${TASK_NAME:-}" ]] && {
   SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
   TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
   TASK_FILE="$TASKS_DIR/${TASK_NAME}"
-fi
+}
 
 [[ -d "$UNIT_DIR" ]] || mkdir -p "$UNIT_DIR"
 [[ -d "$TASKS_DIR" ]] || mkdir -p "$TASKS_DIR"
@@ -39,6 +55,33 @@ usage() {
   echo "  $0 edit <task_name>"
   echo "  $0 report [options]"
   exit 1
+}
+
+prompt_task_name() {
+  if ! command -v fzf >/dev/null 2>&1; then
+    printf '❌ fzf not found\n' >&2
+    printf '   Install fzf to use interactive task selection.\n' >&2
+    exit 1
+  fi
+
+  [[ -d "$TASKS_DIR" ]] || {
+    printf '❌ %s does not exist\n' "$TASKS_DIR" >&2
+    exit 1
+  }
+
+  local name
+  readarray -t names < <(for f in "$TASKS_DIR"/*; do basename "$f"; done 2>/dev/null | sort)
+  [[ ${#names[@]} -gt 0 ]] || {
+    printf '❌ No tasks configured\n' >&2
+    exit 1
+  }
+  set +e
+  name=$(printf '%s\n' "${names[@]}" | fzf --prompt="Select task: " 2>/dev/null; exit_code=$?)
+  [[ $exit_code -eq 0 && -n "$name" ]] && TASK_NAME="$name" || {
+    printf '❌ Task selection cancelled\n' >&2
+    exit 1
+  }
+  set -e
 }
 
 is_one_line_bash_script() {
