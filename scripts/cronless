@@ -1,43 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-[[ ! -v USER ]] && USER="$(id -un)"
-[[ ! -v HOME ]] && HOME="$(getent passwd "$USER" | cut -d: -f6)"
-
-if [[ $USER == root ]]; then
-  SYSTEMCTL="systemctl"
-  JOURNALCTL="journalctl"
-  UNIT_DIR="/etc/systemd/system"
-else
-  SYSTEMCTL="systemctl --user"
-  JOURNALCTL="journalctl --user"
-  UNIT_DIR="$HOME/.config/systemd/user"
-  loginctl enable-linger "$USER"
-fi
-TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
-
-ACTION="${1:-}"
-
-# Actions that require a task name as only second arg
-TASK_NAME_ACTIONS=( remove logs run enable disable edit )
-
-if [[ $# -ge 2 ]]; then
-  TASK_NAME="$2"
-elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 && " ${TASK_NAME_ACTIONS[*]} " == *" $ACTION "* ]]; then
-  if [[ -t 0 ]]; then
-    prompt_task_name
-  else
-    echo "Usage: $0 $ACTION <task_name>" >&2
-    usage
-  fi
-fi
-[[ -n "${TASK_NAME:-}" ]] && {
-  SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
-  TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
-  TASK_FILE="$TASKS_DIR/${TASK_NAME}"
-}
-
-[[ -d "$UNIT_DIR" ]] || mkdir -p "$UNIT_DIR"
-[[ -d "$TASKS_DIR" ]] || mkdir -p "$TASKS_DIR"
 
 usage() {
   echo "Usage:"
@@ -95,6 +57,45 @@ is_one_line_bash_script() {
 
     [[ "$lines" -eq 2 ]]
 }
+
+[[ ! -v USER ]] && USER="$(id -un)"
+[[ ! -v HOME ]] && HOME="$(getent passwd "$USER" | cut -d: -f6)"
+
+if [[ $USER == root ]]; then
+  SYSTEMCTL="systemctl"
+  JOURNALCTL="journalctl"
+  UNIT_DIR="/etc/systemd/system"
+else
+  SYSTEMCTL="systemctl --user"
+  JOURNALCTL="journalctl --user"
+  UNIT_DIR="$HOME/.config/systemd/user"
+  loginctl enable-linger "$USER"
+fi
+TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
+
+ACTION="${1:-}"
+
+# Actions that require a task name as only second arg
+TASK_NAME_ACTIONS=( remove logs run enable disable edit )
+
+if [[ $# -ge 2 ]]; then
+  TASK_NAME="$2"
+elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 && " ${TASK_NAME_ACTIONS[*]} " == *" $ACTION "* ]]; then
+  if [[ -t 0 ]]; then
+    prompt_task_name
+  else
+    echo "Usage: $0 $ACTION <task_name>" >&2
+    usage
+  fi
+fi
+[[ -n "${TASK_NAME:-}" ]] && {
+  SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
+  TIMER_FILE="$UNIT_DIR/cronless-${TASK_NAME}.timer"
+  TASK_FILE="$TASKS_DIR/${TASK_NAME}"
+}
+
+[[ -d "$UNIT_DIR" ]] || mkdir -p "$UNIT_DIR"
+[[ -d "$TASKS_DIR" ]] || mkdir -p "$TASKS_DIR"
 
 case "$ACTION" in
   add)
