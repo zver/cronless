@@ -62,7 +62,7 @@ for TASK in "${TASKS[@]}"; do
 
     TOTAL=${#RESULTS[@]}
 
-    SUCCESS=$(grep -o "SUCCESS" <<< "${RESULTS[*]}" | wc -l)
+    SUCCESS=$(grep -c "SUCCESS" <<< "${RESULTS[*]}" || true )
     FAIL=$((TOTAL - SUCCESS))
 
     # Последние N запусков

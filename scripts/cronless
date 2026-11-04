@@ -240,6 +240,7 @@ EOF
     ;;
 
   report)
+    shift
     exec cronless-report "$@"
     ;;
 
