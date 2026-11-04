@@ -3,3 +3,4 @@ debian/cronless.substvars
 debian/cronless/
 debian/debhelper-build-stamp
 debian/files
+INSTRUCTIONS.md
