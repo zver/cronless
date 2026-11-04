@@ -37,6 +37,7 @@ usage() {
   echo "  $0 enable <task_name>"
   echo "  $0 disable <task_name>"
   echo "  $0 edit <task_name>"
+  echo "  $0 report [options]"
   exit 1
 }
 
@@ -192,6 +193,10 @@ EOF
     fi
 
     exec "$CMD" "$TASK_FILE"
+    ;;
+
+  report)
+    exec cronless-report "$@"
     ;;
 
   *)
