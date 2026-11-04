@@ -34,7 +34,7 @@ prompt_task_name() {
     exit 1
   }
   set +e
-  name=$(printf '%s\n' "${names[@]}" | fzf --prompt="Select task: " 2>/dev/null)
+  name=$(printf '%s\n' "${names[@]}" | fzf --prompt="Select task: ")
   exit_code=$?
   set -e
   if [[ $exit_code -eq 0 && -n "$name" ]]; then
@@ -86,8 +86,9 @@ if [[ $# -ge 2 ]]; then
 elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 && " ${TASK_NAME_ACTIONS[*]} " == *" $ACTION "* ]]; then
   if [[ -t 0 ]]; then
     prompt_task_name
+    $0 "$ACTION" "$TASK_NAME"
+    exit $?
   else
-    echo "Usage: $0 $ACTION <task_name>" >&2
     usage
   fi
 fi
