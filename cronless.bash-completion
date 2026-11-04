@@ -1,0 +1,50 @@
+
+_cronless() {
+    local cur prev action
+    local -a actions tasks
+
+    COMPREPLY=()
+
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    actions=(
+        add
+        remove
+        rm
+        list
+        ls
+        run
+        exec
+        start
+        logs
+        enable
+        disable
+        edit
+        report
+    )
+
+    # Первый аргумент: список действий
+    if (( COMP_CWORD == 1 )); then
+        COMPREPLY=( $(compgen -W "${actions[*]}" -- "$cur") )
+        return
+    fi
+
+    action="${COMP_WORDS[1]}"
+
+    case "$action" in
+        remove|rm|run|exec|start|logs|enable|disable|edit)
+            if (( COMP_CWORD == 2 )); then
+                mapfile -t tasks < <(
+                    cronless list 2>/dev/null |
+                        awk '/^ - / {print $2}'
+                )
+
+                COMPREPLY=( $(compgen -W "${tasks[*]}" -- "$cur") )
+            fi
+            ;;
+    esac
+}
+
+complete -F _cronless cronless cl
+
