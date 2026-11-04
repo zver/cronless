@@ -22,17 +22,13 @@ TASK_NAME_ACTIONS=( remove logs run enable disable edit )
 
 if [[ $# -ge 2 ]]; then
   TASK_NAME="$2"
-elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 ]]; then
-  for a in "${TASK_NAME_ACTIONS[@]}"; do
-    if [[ "$ACTION" == "$a" ]]; then
-      if [[ -t 0 ]]; then
-        prompt_task_name
-      else
-        usage
-      fi
-      break
-    fi
-  done
+elif [[ ${#TASK_NAME_ACTIONS[@]} -gt 0 && " ${TASK_NAME_ACTIONS[*]} " == *" $ACTION "* ]]; then
+  if [[ -t 0 ]]; then
+    prompt_task_name
+  else
+    echo "Usage: $0 $ACTION <task_name>" >&2
+    usage
+  fi
 fi
 [[ -n "${TASK_NAME:-}" ]] && {
   SERVICE_FILE="$UNIT_DIR/cronless-${TASK_NAME}.service"
