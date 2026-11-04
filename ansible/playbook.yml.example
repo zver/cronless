@@ -1,6 +1,0 @@
-- hosts: all
-  become: yes
-  vars:
-    cronless_version: "0.1.0" # можно не указывать для последней версии
-  roles:
-    - cronless
