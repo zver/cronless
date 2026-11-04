@@ -36,6 +36,7 @@ usage() {
   echo "  $0 logs <task_name>"
   echo "  $0 enable <task_name>"
   echo "  $0 disable <task_name>"
+  echo "  $0 edit <task_name>"
   exit 1
 }
 
@@ -175,6 +176,22 @@ EOF
     $SYSTEMCTL "$1" "${TIMER_FILE##*/}"
     EXIT_CODE=$?
     exit $EXIT_CODE
+    ;;
+
+  edit)
+    [[ $# -eq 2 ]] || usage
+    if [ ! -f "$TASK_FILE" ]; then
+        echo "Task '$TASK_NAME' not found!" >&2
+        exit 1
+    fi
+
+    if [[ -v EDITOR && -n "${EDITOR}" ]]; then
+        CMD="$EDITOR"
+    else
+        CMD="editor"
+    fi
+
+    exec "$CMD" "$TASK_FILE"
     ;;
 
   *)
