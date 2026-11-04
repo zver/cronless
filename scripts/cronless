@@ -34,12 +34,15 @@ prompt_task_name() {
     exit 1
   }
   set +e
-  name=$(printf '%s\n' "${names[@]}" | fzf --prompt="Select task: " 2>/dev/null; exit_code=$?)
-  [[ $exit_code -eq 0 && -n "$name" ]] && TASK_NAME="$name" || {
+  name=$(printf '%s\n' "${names[@]}" | fzf --prompt="Select task: " 2>/dev/null)
+  exit_code=$?
+  set -e
+  if [[ $exit_code -eq 0 && -n "$name" ]]; then
+    TASK_NAME="$name"
+  else
     printf '❌ Task selection cancelled\n' >&2
     exit 1
-  }
-  set -e
+  fi
 }
 
 is_one_line_bash_script() {
