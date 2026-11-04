@@ -47,18 +47,22 @@ prompt_task_name() {
 
 is_one_line_bash_script() {
     local file="$1"
+    local -a lines
 
     # файл существует и исполняемый
     [[ -f "$file" && -x "$file" ]] || return 1
 
     # проверка shebang на bash
-    head -n 1 "$file" | grep -Eq '^#!.*/(env +)?bash' || return 1
+    [[ "$(head -n 1 "$file")" =~ ^#!.*/(env[[:space:]]+)?bash ]] || return 1
 
-    # считаем строки, содержащие НЕ только пробелы/табы
-    local lines
-    lines=$(grep -cEv '^[[:space:]]*$' "$file")
+    # проверка на наличие пустых строк и комментариев
+    mapfile -t lines < <(
+        sed -E '1{/^#!.*bash/d}; /^[[:space:]]*$/d; /^[[:space:]]*#.*$/d' "$file"
+    )
 
-    [[ "$lines" -eq 2 ]]
+    [[ "${#lines[@]}" -eq 1 ]] || return 1
+
+    printf '%s\n' "${lines[0]}"
 }
 
 [[ ! -v USER ]] && USER="$(id -un)"
@@ -174,9 +178,8 @@ EOF
       TASK_NAME="${TASK_FILE##*/}"
 
       CMD="$TASK_FILE"
-      if is_one_line_bash_script "$TASK_FILE"; then
-        line=$(sed -E '1{/^#!.*bash/d}; /^[[:space:]]*$/d' "$TASK_FILE")
-        [[ $(wc -l <<<"$line") -eq 1 ]] && CMD=$line
+      if line=$(is_one_line_bash_script "$TASK_FILE"); then
+        CMD="$line"
       fi
 
       TIMER="$UNIT_DIR/cronless-$TASK_NAME.timer"
