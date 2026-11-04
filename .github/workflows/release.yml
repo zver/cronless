@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build-deb:
@@ -111,17 +112,37 @@ jobs:
         run: |
           set -euo pipefail
 
-          OLD_TAGS=$(gh api --paginate --slurp \
+          OLD_RELEASES=$(gh api --paginate --slurp \
             "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-            | jq -r 'add | sort_by(.published_at // .created_at) | reverse | .[5:][] | .tag_name')
+            | jq -r 'add | sort_by(.published_at // .created_at) | reverse | .[5:][].id')
 
-          if [[ -n "$OLD_TAGS" ]]; then
-            while IFS= read -r tag; do
-              echo "Deleting old release: $tag"
-              gh release delete "$tag" --yes --repo "$GITHUB_REPOSITORY"
-              gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}"
-            done <<< "$OLD_TAGS"
+          if [[ -n "$OLD_RELEASES" ]]; then
+            while IFS= read -r release_id; do
+              echo "Deleting old release ID: $release_id"
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+            done <<< "$OLD_RELEASES"
           else
             echo "Nothing to delete. 5 or fewer releases."
           fi
 
+      - name: Delete old workflow runs (keep 20 newest)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          OLD_RUNS=$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/${GITHUB_WORKFLOW_REF##*/}/runs?per_page=100" \
+            | jq -r 'add | sort_by(.created_at) | reverse | .[20:][].id')
+
+          if [[ -n "$OLD_RUNS" ]]; then
+            while IFS= read -r run_id; do
+              echo "Deleting old workflow run ID: $run_id"
+              gh api --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+            done <<< "$OLD_RUNS"
+          else
+            echo "Nothing to delete. 20 or fewer workflow runs."
+          fi
