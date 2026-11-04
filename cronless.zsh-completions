@@ -1,12 +1,17 @@
+
 #compdef cronless
 
 _cronless() {
-    local actions
+    local -a actions
     actions=(
         'add:Add new task'
-        'remove,rm:Remove an existing task'
-        'list,ls:List all tasks'
-        'run,exec,start:Run a task immediately'
+        'remove:Remove an existing task'
+        'rm:Remove an existing task'
+        'list:List all tasks'
+        'ls:List all tasks'
+        'run:Run a task immediately'
+        'exec:Run a task immediately'
+        'start:Run a task immediately'
         'logs:Show service logs'
         'enable:Enable the task timer'
         'disable:Disable the task timer'
@@ -14,36 +19,26 @@ _cronless() {
         'report:Show task status report'
     )
 
-    local curcontext="$curcontext" state line
-    _arguments \
-        '1:action:(($actions))'\
-        '*::arg:_cronless_args'
+    if (( CURRENT == 2 )); then
+        _describe -t actions 'cronless actions' actions
+        return
+    fi
 
+    _cronless_args
 }
 
 _cronless_args() {
-    case $words[1] in
+    case $words[2] in
         add)
-            # <task_name> "<command>" "<OnCalendar>"
-            (( CURRENT == 2 )) && return
-            (( CURRENT == 3 )) && return
+            return
             ;;
         remove|rm|run|exec|start|logs|enable|disable|edit)
-            (( CURRENT == 2 )) && return 0
-            local -a tasks
-            local output
-            output="$(cronless list 2>/dev/null | awk '/^ - / {print $2}')"
-            compadd -- ${(f)output}
+            if (( CURRENT == 3 )); then
+                local -a tasks
+                tasks=("${(@f)$(cronless list 2>/dev/null | awk '/^ - / {print $2}')}")
+                compadd -a tasks
+            fi
             ;;
     esac
 }
 
-_cronless "$@"
-
-# Local Variables:
-# mode: Shell-Script
-# sh-indentation: 4
-# indent-tabs-mode: nil
-# sh-basic-offset: 4
-# End:
-# vim: ft=zsh sw=4 ts=4 et
