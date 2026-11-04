@@ -16,7 +16,7 @@
   - `cronless logs <name>`
 - Еженедельный отчёт:
 
-```cronless-report```
+```cronless report```
 
   - количество запусков за последние дни
   - успешные и неудачные выполнения
@@ -53,7 +53,7 @@ scripts - скрипты самого cronless
 cronless add backup "/usr/local/bin/backup_db.sh" daily
 
 # Добавить еженедельную задачу с отправкой отчета cronless на email
-cronless add cronless-report-to-email "cronless-report -d 7 -n 20 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
+cronless add cronless-report-to-email "cronless report -d 7 -n 20 2>&1 | mail -s 'Cronless weekly report' FIXME@example.com" weekly
 
 # Удалить задачу
 cronless remove backup
@@ -74,10 +74,10 @@ cronless disable backup
 cronless disable backup
 
 # получить недельный отчёт
-cronless-report -d 7 -n 20
+cronless report -d 7 -n 20
 
 # Отправить его на почту
-cronless-report -d 7 -n 20 | mail -s "Weekly Tasks Report" you@example.com
+cronless report -d 7 -n 20 | mail -s "Weekly Tasks Report" you@example.com
 ```
 
 ---

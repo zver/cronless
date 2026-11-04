@@ -8,7 +8,6 @@ all:
 install:
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 0755 scripts/cronless $(DESTDIR)$(BINDIR)/
-	install -m 0755 scripts/cronless-report $(DESTDIR)$(BINDIR)/
 	install -Dm644 cronless.zsh-completions \
 		$(DESTDIR)$(PREFIX)/share/zsh/vendor-completions/_cronless
 	install -Dm644 cronless.bash-completion \
@@ -20,7 +19,6 @@ install:
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/cronless
-	rm -f $(DESTDIR)$(BINDIR)/cronless-report
 	rm -f $(DESTDIR)$(BINDIR)/cl
 
 .PHONY: all install uninstall
