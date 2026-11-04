@@ -247,7 +247,8 @@ EOF
     DAYS=7
     NUM_RUNS=20
 
-    # Обработка аргументов
+    # Пропустить 'report' — ниже getopts обрабатывает опции
+    shift
     while getopts "d:n:" opt; do
       case $opt in
         d) DAYS="$OPTARG" ;;
@@ -255,7 +256,6 @@ EOF
         *) usage ;;
       esac
     done
-    shift $((OPTIND - 1))
 
     # Получаем список активных задач
     shopt -s nullglob
