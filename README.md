@@ -67,8 +67,13 @@ cronless list
 # Получить логи
 cronless logs backup
 
-# запустить задачу вручную
+# запустить задачу вручную через выполнение скрипта
 cronless run backup
+
+# запустить задачу вручную через systemd сервис,
+# который уже запустит исполняемый скрипт
+# так информация о запуске попадет в journald и prometheus метрики
+cronless start backup
 
 # отключить выполнение задачи по расписанию
 cronless disable backup

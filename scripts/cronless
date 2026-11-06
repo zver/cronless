@@ -390,13 +390,26 @@ EOF
     $JOURNALCTL -u "${SERVICE_FILE##*/}"
     ;;
 
-  run|exec|start)
+  run|exec)
+    # Start task with exec task script file
     [[ $# -eq 2 ]] || usage
     if [ ! -f "$TASK_FILE" ]; then
         echo "Task $TASK_NAME not found!" >&2
         exit 1
     fi
     $TASK_FILE
+    EXIT_CODE=$?
+    exit $EXIT_CODE
+    ;;
+
+  start)
+    # Start via systemd service for logging in journald
+    [[ $# -eq 2 ]] || usage
+    if [ ! -f "$TASK_FILE" ]; then
+        echo "Task $TASK_NAME not found!" >&2
+        exit 1
+    fi
+    $SYSTEMCTL start "${SERVICE_FILE##*/}"
     EXIT_CODE=$?
     exit $EXIT_CODE
     ;;
