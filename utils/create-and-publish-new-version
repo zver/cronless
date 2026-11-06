@@ -30,7 +30,7 @@ is_dirty() {
 
 if is_dirty; then
     printf '\nThere are uncommitted changes in the repository:\n'
-    git diff --stat HEAD
+    git status --short
     echo ""
     read -r -p "Add all files and commit before tagging? [y/N]: " confirm || exit 1
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
