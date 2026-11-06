@@ -17,6 +17,7 @@ _cronless() {
         'disable:Disable the task timer'
         'edit:Edit a task file in $EDITOR'
         'report:Show task status report'
+        'update-node-exporter-textfile:Update node_exporter textfile with cronless metrics:file_path'
     )
 
     if (( CURRENT == 2 )); then

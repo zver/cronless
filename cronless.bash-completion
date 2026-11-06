@@ -22,6 +22,7 @@ _cronless() {
         disable
         edit
         report
+        update-node-exporter-textfile
     )
 
     # Первый аргумент: список действий
@@ -33,6 +34,11 @@ _cronless() {
     action="${COMP_WORDS[1]}"
 
     case "$action" in
+        update-node-exporter-textfile)
+            if (( COMP_CWORD == 2 )); then
+                COMPREPLY=( $(compgen -f -- "$cur") )
+            fi
+            ;;
         remove|rm|run|exec|start|logs|enable|disable|edit)
             if (( COMP_CWORD == 2 )); then
                 mapfile -t tasks < <(
