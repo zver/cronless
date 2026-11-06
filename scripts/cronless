@@ -382,11 +382,6 @@ EOF
     echo '# TYPE cronless_last_update_timestamp gauge' >> "$METRICS_FILE"
     echo "cronless_last_update_timestamp{task=\"_internal\"} $(date +%s)" >> "$METRICS_FILE"
 
-    # Удалить последнюю пустую строку (она лишняя)
-    if [[ -s "$METRICS_FILE" && $(tail -c 1 "$METRICS_FILE") == "" ]]; then
-      perl -pi -e 'chomp if eof' "$METRICS_FILE"
-    fi
-
     echo "✅ Метрики обновлены в '$METRICS_FILE'"
     ;;
 
