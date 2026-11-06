@@ -199,6 +199,189 @@ EOF
     done
     ;;
 
+  update-node-exporter-textfile)
+    [[ $# -eq 2 ]] || usage
+
+    METRICS_FILE="$2"
+
+    # Проверить, существует ли файл
+    if [ -e "$METRICS_FILE" ]; then
+      # Файл существует — проверить права
+      if [ ! -r "$METRICS_FILE" ] || [ ! -w "$METRICS_FILE" ]; then
+        echo "❌ Файл '$METRICS_FILE' недоступен для чтения/записи" >&2
+        exit 1
+      fi
+    else
+      # Файл не существует — попробовать создать
+      # Проверить, существует ли родительская директория
+      METRICS_DIR=$(dirname "$METRICS_FILE")
+      if [ ! -d "$METRICS_DIR" ]; then
+        echo "❌ Директория '$METRICS_DIR' не существует" >&2
+        exit 1
+      fi
+
+      # Попробовать создать пустой файл
+      if ! touch "$METRICS_FILE" 2>/dev/null; then
+        echo "❌ Не удалось создать файл '$METRICS_FILE'" >&2
+        exit 1
+      fi
+    fi
+
+    # Очистить файл (оставить только комментарии)
+    : > "$METRICS_FILE"
+
+    # Получить список задач
+    shopt -s nullglob
+    TASKS=("$TASKS_DIR"/*)
+    shopt -u nullglob
+
+    if [ ${#TASKS[@]} -eq 0 ]; then
+      echo "✅ Нет задач для обновления метрик"
+      exit 0
+    fi
+
+    # === Сбор данных по каждой задаче ===
+
+    # Массивы для хранения метрик одной метрики по всем задачам (в порядке задач с list)
+    declare -a LAST_SUCCESS_ARR=()
+    declare -a LAST_EXEC_TIME_ARR=()
+    declare -a LAST_START_TS_ARR=()
+    declare -a LAST_END_TS_ARR=()
+    declare -a ENABLED_ARR=()
+    declare -a NAMES_ARR=()
+
+    for TASK_FILE in "${TASKS[@]}"; do
+      TASK_NAME="${TASK_FILE##*/}"
+      NAMES_ARR+=("$TASK_NAME")
+
+      # Получить статус таймера (enabled/disabled)
+      TIMER_FILE="$UNIT_DIR/cronless-$TASK_NAME.timer"
+      if [ -f "$TIMER_FILE" ]; then
+        IS_ENABLED=$($SYSTEMCTL is-enabled "cronless-$TASK_NAME.timer" 2>/dev/null || echo "unknown")
+        if [[ "$IS_ENABLED" == *"enabled"* ]]; then
+          ENABLED=1
+        else
+          ENABLED=0
+        fi
+      else
+        ENABLED=0
+      fi
+
+      # Получить данные из journalctl о последнем запуске
+      LOGS="$($JOURNALCTL -u "cronless-${TASK_NAME}.service" --since "24 hours ago" --no-pager --output=short-unix 2>&1)"
+      # Отфильтровать логи
+      LOGS_CLEAN=$(echo "$LOGS" | grep -v '^#' | grep -v '^help' | grep -v '^node_' | grep -v '^cronless_' || true)
+
+      LAST_SUCCESS=0
+      LAST_EXEC_TIME=0
+      LAST_START_TS="0"
+      LAST_END_TS="0"
+
+      # Парсить логи для последнего запуска
+      if [[ -n "$LOGS_CLEAN" ]]; then
+        L_START_TIMES=()
+        L_END_TIMES=()
+        L_RESULTS=()
+
+        current_start=""
+        while IFS= read -r line; do
+          TIME=${line%% *}
+          TIME=${TIME%.*}
+
+          if [[ "$line" =~ Starting ]]; then
+            current_start="$TIME"
+          elif [[ "$line" =~ Finished ]]; then
+            [[ -n "$current_start" ]] || continue
+            L_START_TIMES+=("$current_start")
+            L_END_TIMES+=("$TIME")
+            L_RESULTS+=("SUCCESS")
+            current_start=""
+          elif [[ "$line" =~ Failed ]]; then
+            [[ -n "$current_start" ]] || continue
+            L_START_TIMES+=("$current_start")
+            L_END_TIMES+=("$TIME")
+            L_RESULTS+=("FAIL")
+            current_start=""
+          fi
+        done <<< "$LOGS_CLEAN"
+
+        TOTAL=${#L_RESULTS[@]}
+
+        if (( TOTAL > 0 )); then
+          if [[ "${L_RESULTS[-1]}" == "FAIL" ]]; then
+            LAST_SUCCESS=0
+          else
+            LAST_SUCCESS=1
+          fi
+          LAST_START_TS=${L_START_TIMES[-1]}
+          LAST_END_TS=${L_END_TIMES[-1]}
+
+          LAST_EXEC_TIME=$(( LAST_END_TS - LAST_START_TS ))
+          if (( LAST_EXEC_TIME < 0 )); then
+            LAST_EXEC_TIME=0
+          fi
+        fi
+
+        unset L_START_TIMES L_END_TIMES L_RESULTS
+      fi
+
+      LAST_SUCCESS_ARR+=("$LAST_SUCCESS")
+      LAST_EXEC_TIME_ARR+=("$LAST_EXEC_TIME")
+      LAST_START_TS_ARR+=("$LAST_START_TS")
+      LAST_END_TS_ARR+=("$LAST_END_TS")
+      ENABLED_ARR+=("$ENABLED")
+    done
+
+    NUM_TASKS=${#NAMES_ARR[@]}
+
+    # === Запись файла: HELP/TYPE раз, потом все data-строки ===
+    # Метрика 1: cronless_last_success
+    echo '# HELP cronless_last_success Last success status of the task (1 = success, 0 = fail)' >> "$METRICS_FILE"
+    echo '# TYPE cronless_last_success gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_last_success{task=\"${NAMES_ARR[$i]}\"} ${LAST_SUCCESS_ARR[$i]}" >> "$METRICS_FILE"
+    done
+    echo '' >> "$METRICS_FILE"
+
+    # Метрика 2: cronless_last_exec_time
+    echo '# HELP cronless_last_exec_time Last execution duration in seconds' >> "$METRICS_FILE"
+    echo '# TYPE cronless_last_exec_time gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_last_exec_time{task=\"${NAMES_ARR[$i]}\"} ${LAST_EXEC_TIME_ARR[$i]}" >> "$METRICS_FILE"
+    done
+    echo '' >> "$METRICS_FILE"
+
+    # Метрика 3: cronless_last_start_timestamp
+    echo '# HELP cronless_last_start_timestamp Timestamp of last task start' >> "$METRICS_FILE"
+    echo '# TYPE cronless_last_start_timestamp gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_last_start_timestamp{task=\"${NAMES_ARR[$i]}\"} ${LAST_START_TS_ARR[$i]}" >> "$METRICS_FILE"
+    done
+    echo '' >> "$METRICS_FILE"
+
+    # Метрика 4: cronless_last_end_timestamp
+    echo '# HELP cronless_last_end_timestamp Timestamp of last task end' >> "$METRICS_FILE"
+    echo '# TYPE cronless_last_end_timestamp gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_last_end_timestamp{task=\"${NAMES_ARR[$i]}\"} ${LAST_END_TS_ARR[$i]}" >> "$METRICS_FILE"
+    done
+    echo '' >> "$METRICS_FILE"
+
+    # Метрика 5: cronless_enabled
+    echo '# HELP cronless_enabled Whether the task timer is enabled' >> "$METRICS_FILE"
+    echo '# TYPE cronless_enabled gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_enabled{task=\"${NAMES_ARR[$i]}\"} ${ENABLED_ARR[$i]}" >> "$METRICS_FILE"
+    done
+
+    # Удалить последнюю пустую строку (она лишняя)
+    if [[ -s "$METRICS_FILE" && $(tail -c 1 "$METRICS_FILE") == "" ]]; then
+      perl -pi -e 'chomp if eof' "$METRICS_FILE"
+    fi
+
+    echo "✅ Метрики обновлены в '$METRICS_FILE'"
+    ;;
+
   logs)
     [[ $# -eq 2 ]] || usage
     $JOURNALCTL -u "${SERVICE_FILE##*/}"
