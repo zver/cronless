@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CURRENT_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+
+if [[ -z "$CURRENT_TAG" ]]; then
+    echo "No tags found in repository." >&2
+    exit 1
+fi
+
+printf 'Current tag: %s\n' "$CURRENT_TAG"
+
+if [[ "$CURRENT_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    MAJOR="${BASH_REMATCH[1]}"
+    MINOR="${BASH_REMATCH[2]}"
+    PATCH="${BASH_REMATCH[3]}"
+else
+    echo "Tag format must be v<MAJOR>.<MINOR>.<PATCH>, got: '$CURRENT_TAG'" >&2
+    exit 1
+fi
+
+PATCH=$((PATCH + 1))
+NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+printf 'Next tag: %s\n' "$NEXT_TAG"
+
+is_dirty() {
+    [[ -n "$(git status --porcelain)" ]]
+}
+
+if is_dirty; then
+    printf '\nThere are uncommitted changes in the repository:\n'
+    git diff --stat HEAD
+    echo ""
+    read -r -p "Add all files and commit before tagging? [y/N]: " confirm || exit 1
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        git add -A
+        echo ""
+        read -r -p "Commit message: " message
+        if [[ -n "$message" ]]; then
+            git commit -m "$message"
+        fi
+    fi
+fi
+
+read -r -p "Create tag '$NEXT_TAG'? [y/N]: " confirm || exit 1
+if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    exit 0
+fi
+
+git tag -a "$NEXT_TAG" -m "Release ${NEXT_TAG}"
+
+if git push origin "$NEXT_TAG"; then
+    printf 'Published tag %s\n' "$NEXT_TAG"
+else
+    echo "" >&2
+    echo "Failed to push tag '$NEXT_TAG'. Try manually:" >&2
+    echo "  git push origin ${NEXT_TAG}" >&2
+    exit 1
+fi
