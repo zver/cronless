@@ -36,7 +36,7 @@ _cronless() {
     case "$action" in
         update-node-exporter-textfile)
             if (( COMP_CWORD == 2 )); then
-                COMPREPLY=( $(compgen -f -- "$cur") )
+                mapfile -t COMPREPLY < <(compgen -f -- "$cur")
             fi
             ;;
         remove|rm|run|exec|start|logs|enable|disable|edit)

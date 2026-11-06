@@ -40,6 +40,11 @@ _cronless_args() {
                 compadd -a tasks
             fi
             ;;
+        update-node-exporter-textfile)
+            if (( CURRENT == 3 )); then
+                _files
+            fi
+            ;;
     esac
 }
 
