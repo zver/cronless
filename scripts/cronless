@@ -7,11 +7,14 @@ usage() {
   echo "  $0 remove <task_name>"
   echo "  $0 list"
   echo "  $0 run <task_name>"
+  echo "  $0 update-node-exporter-textfile <path>"
   echo "  $0 logs <task_name>"
   echo "  $0 enable <task_name>"
   echo "  $0 disable <task_name>"
   echo "  $0 edit <task_name>"
   echo "  $0 report [options]"
+  echo "         -d <days>       Show report for last N days (default: 7)"
+  echo "         -n <runs>       Number of runs per task (default: 20)"
   exit 1
 }
 

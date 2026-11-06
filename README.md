@@ -21,6 +21,9 @@
   - количество запусков за последние дни
   - успешные и неудачные выполнения
   - максимальное время выполнения
+- Экспорт метрик cronless в формате [node_exporter textfile_collector](https://prometheus.io/docs/prometheus/latest/configuration/template_processing/#textfile_collector):
+  - `cronless update-node-exporter-textfile <path-to-metrics.prom>` — обновит файл с метриками
+  - можно добавить как periodic task для автоматической генерации
 - Поддержка systemd timers с `Persistent=true` — задачи выполняются даже если ноут спал
 
 ---
@@ -78,6 +81,9 @@ cronless report -d 7 -n 20
 
 # Отправить его на почту
 cronless report -d 7 -n 20 | mail -s "Weekly Tasks Report" you@example.com
+
+# Автоматически обновлять файлы метрик node_exporter
+cronless add update-prometheus-textfile-for-cronless-tasks "cronless update-node-exporter-textfile /var/lib/node_exporter/textfile_collector/cronless.$USER.prom" "*-*-* *:0/5:00"
 ```
 
 ---
