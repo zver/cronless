@@ -1,3 +1,5 @@
+[English](README.md) | [Русский](README.ru.md)
+
 # Cronless
 
 **Cronless** — лёгкий менеджер периодических задач на Linux с использованием systemd timers.  
