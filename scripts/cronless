@@ -382,6 +382,26 @@ EOF
     echo '# TYPE cronless_last_update_timestamp gauge' >> "$METRICS_FILE"
     echo "cronless_last_update_timestamp{task=\"_internal\"} $(date +%s)" >> "$METRICS_FILE"
 
+    # Метрика 7: cronless_cpu_time_sec — собираем CPU usage, округляем до секунд
+    declare -a CPU_TIME_SEC_ARR=()
+    for TASK_FILE in "${TASKS[@]}"; do
+      TASK_NAME="${TASK_FILE##*/}"
+      CPU_NS=$($SYSTEMCTL show "cronless-${TASK_NAME}.service" -p CPUTimeNSec --value 2>/dev/null || echo "0")
+      # если нет свойства (задача не запускалась), подменяем на 0
+      if [[ -z "$CPU_NS" || "$CPU_NS" == "0" ]]; then
+        CPU_NS=0
+      fi
+      # округляем наносекунды до секунд
+      CPU_S=$(( (CPU_NS + 500000000) / 1000000000 ))
+      CPU_TIME_SEC_ARR+=("$CPU_S")
+    done
+    echo '' >> "$METRICS_FILE"
+    echo '# HELP cronless_cpu_time_sec CPU time consumed by the task (seconds)' >> "$METRICS_FILE"
+    echo '# TYPE cronless_cpu_time_sec gauge' >> "$METRICS_FILE"
+    for i in $(seq 0 $((NUM_TASKS - 1))); do
+      echo "cronless_cpu_time_sec{task=\"${NAMES_ARR[$i]}\"} ${CPU_TIME_SEC_ARR[$i]}" >> "$METRICS_FILE"
+    done
+
     echo "✅ Метрики обновлены в '$METRICS_FILE'"
     ;;
 
