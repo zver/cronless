@@ -8,9 +8,9 @@ all:
 install:
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 0755 scripts/cronless $(DESTDIR)$(BINDIR)/
-	install -Dm644 cronless.zsh-completions \
+	install -Dm644 completions/zsh-completions \
 		$(DESTDIR)$(PREFIX)/share/zsh/vendor-completions/_cronless
-	install -Dm644 cronless.bash-completions \
+	install -Dm644 completions/bash-completions \
     	$(DESTDIR)$(PREFIX)/share/bash-completion/completions/cronless
 
 	ln -sf cronless $(DESTDIR)$(BINDIR)/cl
