@@ -1,17 +1,18 @@
 {
-  "uid": "cronless-tasks-en",
-  "title": "Cronless Tasks (EN)",
-  "description": "Cronless tasks monitoring",
+  "uid": "cronless-tasks",
+  "title": "Cronless Tasks",
+  "description": "Monitoring of cronless task execution status",
   "tags": [
     "cronless",
-    "prometheus"
+    "prometheus",
+    "tasks"
   ],
   "timezone": "browser",
   "editable": true,
   "graphTooltip": 1,
-  "schemaVersion": 41,
-  "version": 1,
-  "refresh": "1m",
+  "schemaVersion": 39,
+  "version": 4,
+  "refresh": "30s",
   "time": {
     "from": "now-24h",
     "to": "now"
@@ -43,7 +44,12 @@
         "query": "prometheus",
         "current": {},
         "hide": 0,
-        "refresh": 1
+        "refresh": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "skipUrlSync": false
       },
       {
         "name": "task",
@@ -63,10 +69,14 @@
         "includeAll": true,
         "allValue": ".*",
         "current": {
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
-        "sort": 1
+        "sort": 1,
+        "hide": 0,
+        "regex": "",
+        "skipUrlSync": false
       }
     ]
   },
@@ -75,13 +85,13 @@
       "id": 1,
       "type": "stat",
       "title": "Total tasks",
-      "description": "",
+      "description": "Total number of tasks matching the filter",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 0,
         "y": 0
@@ -114,7 +124,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "mappings": []
         },
         "overrides": []
       },
@@ -129,20 +140,21 @@
         "colorMode": "background",
         "graphMode": "none",
         "textMode": "value",
-        "justifyMode": "center"
+        "justifyMode": "center",
+        "orientation": "auto"
       }
     },
     {
       "id": 2,
       "type": "stat",
       "title": "Enabled",
-      "description": "",
+      "description": "Number of tasks with cronless_enabled = 1",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 4,
         "y": 0
@@ -197,13 +209,13 @@
       "id": 3,
       "type": "stat",
       "title": "Disabled",
-      "description": "",
+      "description": "Number of tasks with cronless_enabled = 0",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 8,
         "y": 0
@@ -261,14 +273,14 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Last run failed",
-      "description": "Enabled tasks with last_success = 0",
+      "title": "Last run FAIL",
+      "description": "Enabled tasks whose last run failed (last_success = 0)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 12,
         "y": 0
@@ -326,14 +338,14 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Never ran",
-      "description": "last_end_timestamp = 0",
+      "title": "Never started",
+      "description": "Tasks with last_end_timestamp = 0",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 16,
         "y": 0
@@ -392,13 +404,13 @@
       "id": 6,
       "type": "stat",
       "title": "Running now",
-      "description": "start_timestamp > end_timestamp",
+      "description": "Tasks where start_timestamp > end_timestamp (still running)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 4,
         "x": 20,
         "y": 0
@@ -454,18 +466,295 @@
       }
     },
     {
-      "id": 7,
-      "type": "table",
-      "title": "Task status",
+      "id": 12,
+      "type": "stat",
+      "title": "Metrics updated",
+      "description": "Time since last update of the cronless metrics file (task=_internal)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
       "gridPos": {
-        "h": 10,
+        "h": 3,
+        "w": 6,
+        "x": 0,
+        "y": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "time() - cronless_last_update_timestamp{task=\"_internal\"}",
+          "refId": "A",
+          "legendFormat": "updated",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 120
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A",
+                  "index": 0
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Avg duration (last run)",
+      "description": "Average last_exec_time across selected tasks",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 6,
+        "y": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "avg(cronless_last_exec_time{task=~\"$task\"}) or vector(0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Max duration (last run)",
+      "description": "Maximum last_exec_time among selected tasks",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 12,
+        "y": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(cronless_last_exec_time{task=~\"$task\"}) or vector(0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "orange",
+                "value": 300
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Tasks without success",
+      "description": "Tasks that have never had last_success = 1 (including never started)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(cronless_last_success{task=~\"$task\"} == 0) or vector(0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Task status",
+      "description": "Current snapshot of all selected tasks. Colors help quickly assess status.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 12,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 6
       },
       "targets": [
         {
@@ -533,8 +822,20 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and cronless_last_end_timestamp{task=~\"$task\"} > 0",
+          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and on(task) (cronless_last_end_timestamp{task=~\"$task\"} > 0)",
           "refId": "F",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(cronless_last_start_timestamp{task=~\"$task\"} > cronless_last_end_timestamp{task=~\"$task\"})",
+          "refId": "G",
           "legendFormat": "",
           "instant": true,
           "range": false,
@@ -559,25 +860,51 @@
               "Time 3": true,
               "Time 4": true,
               "Time 5": true,
-              "Time 6": true
+              "Time 6": true,
+              "Time 7": true,
+              "Time 8": true,
+              "Time 9": true,
+              "instance": true,
+              "instance 1": true,
+              "instance 2": true,
+              "instance 3": true,
+              "instance 4": true,
+              "instance 5": true,
+              "instance 6": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true,
+              "job 3": true,
+              "job 4": true,
+              "job 5": true,
+              "job 6": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "__name__ 3": true,
+              "__name__ 4": true,
+              "__name__ 5": true,
+              "__name__ 6": true
             },
             "renameByName": {
               "task": "Task",
               "Value #A": "Enabled",
               "Value #B": "Result",
-              "Value #C": "Started",
-              "Value #D": "Finished",
+              "Value #C": "Start",
+              "Value #D": "End",
               "Value #E": "Duration",
-              "Value #F": "Time since end"
+              "Value #F": "Since completion",
+              "Value #G": "Running"
             },
             "indexByName": {
               "Task": 0,
               "Enabled": 1,
               "Result": 2,
-              "Started": 3,
-              "Finished": 4,
-              "Duration": 5,
-              "Time since end": 6
+              "Running": 3,
+              "Start": 4,
+              "End": 5,
+              "Duration": 6,
+              "Since completion": 7
             }
           }
         },
@@ -586,7 +913,8 @@
           "options": {
             "sort": [
               {
-                "field": "Task"
+                "field": "Task",
+                "desc": false
               }
             ]
           }
@@ -599,7 +927,18 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
@@ -630,27 +969,15 @@
                 ]
               },
               {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "yellow",
-                      "value": null
-                    },
-                    {
-                      "color": "green",
-                      "value": 1
-                    }
-                  ]
-                }
-              },
-              {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "color-background",
                   "mode": "basic"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 100
               }
             ]
           },
@@ -681,20 +1008,43 @@
                 ]
               },
               {
-                "id": "thresholds",
+                "id": "custom.cellOptions",
                 "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "green",
-                      "value": 1
-                    }
-                  ]
+                  "type": "color-background",
+                  "mode": "basic"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Running"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "—",
+                        "color": "transparent",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "YES",
+                        "color": "blue",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
               },
               {
                 "id": "custom.cellOptions",
@@ -702,13 +1052,17 @@
                   "type": "color-background",
                   "mode": "basic"
                 }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Started"
+              "options": "Start"
             },
             "properties": [
               {
@@ -729,13 +1083,17 @@
                     }
                   }
                 ]
+              },
+              {
+                "id": "custom.width",
+                "value": 160
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Finished"
+              "options": "End"
             },
             "properties": [
               {
@@ -756,6 +1114,10 @@
                     }
                   }
                 ]
+              },
+              {
+                "id": "custom.width",
+                "value": 160
               }
             ]
           },
@@ -768,13 +1130,21 @@
               {
                 "id": "unit",
                 "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 110
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Time since end"
+              "options": "Since completion"
             },
             "properties": [
               {
@@ -812,15 +1182,32 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
+                    "type": "special",
                     "options": {
-                      "null": {
+                      "match": "null",
+                      "result": {
                         "text": "—",
                         "index": 0
                       }
                     }
                   }
                 ]
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
               }
             ]
           }
@@ -830,14 +1217,21 @@
         "showHeader": true,
         "cellHeight": "sm",
         "footer": {
-          "show": false
-        }
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        },
+        "sortBy": []
       }
     },
     {
       "id": 8,
       "type": "state-timeline",
-      "title": "Last run result (history)",
+      "title": "Last run result history",
+      "description": "How last_success status changed over time (1 = OK, 0 = FAIL)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -846,7 +1240,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 18
       },
       "targets": [
         {
@@ -857,14 +1251,16 @@
           "expr": "cronless_last_success{task=~\"$task\"}",
           "refId": "A",
           "legendFormat": "{{task}}",
-          "range": true
+          "range": true,
+          "instant": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "custom": {
             "fillOpacity": 80,
-            "lineWidth": 0
+            "lineWidth": 0,
+            "spanNulls": false
           },
           "mappings": [
             {
@@ -906,7 +1302,7 @@
         "showValue": "never",
         "mergeValues": true,
         "alignValue": "center",
-        "rowHeight": 0.8,
+        "rowHeight": 0.75,
         "legend": {
           "showLegend": true,
           "displayMode": "list",
@@ -921,7 +1317,8 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Execution duration",
+      "title": "Last execution duration",
+      "description": "Value of cronless_last_exec_time over time",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -930,7 +1327,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 18
       },
       "targets": [
         {
@@ -941,7 +1338,8 @@
           "expr": "cronless_last_exec_time{task=~\"$task\"}",
           "refId": "A",
           "legendFormat": "{{task}}",
-          "range": true
+          "range": true,
+          "instant": false
         }
       ],
       "fieldConfig": {
@@ -950,10 +1348,16 @@
           "min": 0,
           "custom": {
             "drawStyle": "line",
-            "lineWidth": 1,
-            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 15,
             "showPoints": "auto",
-            "spanNulls": false
+            "pointSize": 4,
+            "spanNulls": false,
+            "axisBorderShow": false
+          },
+          "color": {
+            "mode": "palette-classic"
           }
         },
         "overrides": []
@@ -978,7 +1382,8 @@
     {
       "id": 10,
       "type": "bargauge",
-      "title": "Time since last end",
+      "title": "Time since last completion",
+      "description": "Seconds since last_end_timestamp (only for tasks that have ever run)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -987,7 +1392,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 23
+        "y": 27
       },
       "targets": [
         {
@@ -995,7 +1400,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and cronless_last_end_timestamp{task=~\"$task\"} > 0",
+          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and on(task) (cronless_last_end_timestamp{task=~\"$task\"} > 0)",
           "refId": "A",
           "legendFormat": "{{task}}",
           "instant": true,
@@ -1025,7 +1430,8 @@
                 "value": 604800
               }
             ]
-          }
+          },
+          "mappings": []
         },
         "overrides": []
       },
@@ -1040,13 +1446,17 @@
           ],
           "fields": "",
           "values": false
-        }
+        },
+        "minVizWidth": 0,
+        "minVizHeight": 10,
+        "namePlacement": "auto"
       }
     },
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Time since last end (history)",
+      "title": "Time since last completion (history)",
+      "description": "How the time since last completion has changed",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1055,7 +1465,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 23
+        "y": 27
       },
       "targets": [
         {
@@ -1063,10 +1473,11 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and cronless_last_end_timestamp{task=~\"$task\"} > 0",
+          "expr": "(time() - cronless_last_end_timestamp{task=~\"$task\"}) and on(task) (cronless_last_end_timestamp{task=~\"$task\"} > 0)",
           "refId": "A",
           "legendFormat": "{{task}}",
-          "range": true
+          "range": true,
+          "instant": false
         }
       ],
       "fieldConfig": {
@@ -1075,9 +1486,14 @@
           "min": 0,
           "custom": {
             "drawStyle": "line",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "fillOpacity": 5,
-            "spanNulls": false
+            "fillOpacity": 8,
+            "spanNulls": false,
+            "showPoints": "never"
+          },
+          "color": {
+            "mode": "palette-classic"
           }
         },
         "overrides": []
@@ -1095,5 +1511,6 @@
       }
     }
   ],
-  "links": []
+  "links": [],
+  "style": "dark"
 }
