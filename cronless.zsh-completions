@@ -16,6 +16,7 @@ _cronless() {
         'enable:Enable the task timer'
         'disable:Disable the task timer'
         'edit:Edit a task file in $EDITOR'
+        'debug:Run a task in debug mode'
         'report:Show task status report'
         'update-node-exporter-textfile:Update node_exporter textfile with cronless metrics:file_path'
     )
@@ -33,7 +34,7 @@ _cronless_args() {
         add)
             return
             ;;
-        remove|rm|run|exec|start|logs|enable|disable|edit)
+        remove|rm|run|exec|start|logs|enable|disable|edit|debug)
             if (( CURRENT == 3 )); then
                 local -a tasks
                 tasks=("${(@f)$(cronless list 2>/dev/null | awk '/^ - / {print $2}')}")

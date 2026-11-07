@@ -64,8 +64,14 @@ cronless remove backup
 # Список задач с последним результатом
 cronless list
 
+# Открыть редактор скрипта запуска задачи
+cronless edit backup
+
 # Получить логи
 cronless logs backup
+
+# Запустит задачу в режиме отладки
+cronless debug backup
 
 # запустить задачу вручную через выполнение скрипта
 cronless run backup
@@ -90,6 +96,8 @@ cronless report -d 7 -n 20 | mail -s "Weekly Tasks Report" you@example.com
 # Автоматически обновлять файлы метрик node_exporter
 cronless add update-prometheus-textfile-for-cronless-tasks "cronless update-node-exporter-textfile /var/lib/node_exporter/textfile_collector/cronless.$USER.prom" "*-*-* *:0/5:00"
 ```
+
+Вместо команды cronless можно использовать ее короткое название cl.
 
 ---
 
