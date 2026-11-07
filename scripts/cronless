@@ -12,6 +12,7 @@ usage() {
   echo "  $0 enable <task_name>"
   echo "  $0 disable <task_name>"
   echo "  $0 edit <task_name>"
+  echo "  $0 debug <task_name>"
   echo "  $0 report [options]"
   echo "         -d <days>       Show report for last N days (default: 7)"
   echo "         -n <runs>       Number of runs per task (default: 20)"
@@ -88,7 +89,7 @@ TASKS_DIR="$HOME/.config/systemd/user/cronless-tasks"
 ACTION="${1:-}"
 
 # Actions that require a task name as only second arg
-TASK_NAME_ACTIONS=( remove logs run enable disable edit )
+TASK_NAME_ACTIONS=( remove logs run enable disable edit debug )
 
 if [[ $# -ge 2 ]]; then
   TASK_NAME="$2"
@@ -461,6 +462,21 @@ EOF
     fi
 
     exec "$CMD" "$TASK_FILE"
+    ;;
+
+  debug)
+    [[ $# -eq 2 ]] || usage
+    if [ ! -f "$TASK_FILE" ]; then
+        echo "❌ Task '$TASK_NAME' not found!" >&2
+        exit 1
+    fi
+
+    if [[ "$(head -n 1 "$TASK_FILE")" != "$SHEBANG" ]]; then
+      echo "❌ SHEBANG doesn't match: expected '$SHEBANG', got '$(head -n 1 "$TASK_FILE")'. Debug is not possible."
+      exit 1
+    fi
+
+    /usr/bin/env -S bash -x "$TASK_FILE"
     ;;
 
   report)
