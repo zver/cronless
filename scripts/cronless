@@ -386,9 +386,9 @@ EOF
     declare -a CPU_TIME_SEC_ARR=()
     for TASK_FILE in "${TASKS[@]}"; do
       TASK_NAME="${TASK_FILE##*/}"
-      CPU_NS=$($SYSTEMCTL show "cronless-${TASK_NAME}.service" -p CPUTimeNSec --value 2>/dev/null || echo "0")
-      # если нет свойства (задача не запускалась), подменяем на 0
-      if [[ -z "$CPU_NS" || "$CPU_NS" == "0" ]]; then
+      CPU_NS=$($SYSTEMCTL show "cronless-${TASK_NAME}.service" -p CPUUsageNSec --value 2>/dev/null || echo "0")
+      # если значения нет (задача не запускалась / учёт CPU выключен: "[not set]"), подменяем на 0
+      if [[ ! "$CPU_NS" =~ ^[0-9]+$ ]]; then
         CPU_NS=0
       fi
       # округляем наносекунды до секунд
